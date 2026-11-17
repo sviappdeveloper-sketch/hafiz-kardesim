@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AdMob kimlikleri. ŞU AN GOOGLE'IN TEST KİMLİKLERİ: reklam yerine "Test Ad" görünür, gelir gelmez.
+         AdMob'da "Hafız Kardeşim" uygulaması ve bir geçiş (interstitial) reklam birimi açınca gerçeklerini yaz. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="ad_interstitial" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+</resources>

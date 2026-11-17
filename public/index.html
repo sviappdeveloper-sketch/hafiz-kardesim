@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Hafız Kardeşim</title>
+<style>
+:root{--bg:#f3f0e6;--card:#fffdf7;--tx:#1d2a26;--mu:#6b7a73;--ac:#0f766e;--ac2:#0b5e57;--gd:#b7862b;--bd:#e3dccb;--in:#f8f5ec;--ok:#0f766e;--er:#c2410c;--sk:#d97706;--hn:#2563eb;--hid:#ddd5c2;
+--ar:"KFGQPC Uthmanic Script HAFS","Amiri Quran","Scheherazade New","Noto Naskh Arabic","Geeza Pro","Traditional Arabic","DejaVu Sans",serif;
+--hf:"Avenir Next","Segoe UI",system-ui,sans-serif;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0c1715;--card:#13221f;--tx:#e8f0ec;--mu:#8fa39b;--ac:#2dd4bf;--ac2:#0f766e;--gd:#e0b25a;--bd:#22372f;--in:#0f1d1a;--ok:#5eead4;--er:#fb923c;--sk:#fbbf24;--hn:#93c5fd;--hid:#2a3d37}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0c1715;--card:#13221f;--tx:#e8f0ec;--mu:#8fa39b;--ac:#2dd4bf;--ac2:#0f766e;--gd:#e0b25a;--bd:#22372f;--in:#0f1d1a;--ok:#5eead4;--er:#fb923c;--sk:#fbbf24;--hn:#93c5fd;--hid:#2a3d37}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:400 16px/1.45 -apple-system,system-ui,sans-serif}
+main{max-width:600px;margin:0 auto;padding:14px 14px 40px}
+h1{font:700 26px var(--hf);margin:0}
+h2{font:700 18px var(--hf);margin:18px 0 8px;color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:10px}
+button{font:600 15px -apple-system,system-ui,sans-serif;border:0;border-radius:10px;padding:10px 14px;background:var(--ac2);color:#fff;cursor:pointer}
+button:disabled{opacity:.45}
+button.g{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+button.d{background:transparent;color:var(--er);border:1px solid var(--bd)}
+button.gd{background:var(--gd);color:#fff}
+input[type=text],input[type=number],select{font:inherit;width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--in);color:var(--tx)}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
+.back{background:transparent;color:var(--ac);padding:6px 0;font-weight:600}
+.mu{color:var(--mu);font-size:14px}
+.c{text-align:center}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.btns button{flex:1;padding:10px;font-size:14px;min-width:30%}
+.lbl{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);margin:14px 0 6px;font-weight:700}
+.tg{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--in);color:var(--mu);margin:0 4px 4px 0;border:1px solid var(--bd)}
+.seg{display:flex;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.seg button{flex:1;border-radius:0;background:var(--card);color:var(--mu);padding:9px 4px;font-size:14px}
+.seg button.on{background:var(--ac2);color:#fff}
+/* açılış */
+#splash{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);transition:opacity .45s}
+#splash img{width:128px;height:128px;border-radius:30px;box-shadow:0 10px 30px rgba(0,0,0,.18);animation:pop .6s ease-out}
+#splash .t{font:700 30px var(--hf)}
+#splash .a{font:400 26px var(--ar);color:var(--gd)}
+#splash.off{opacity:0;pointer-events:none}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+/* menü */
+.hero{display:flex;align-items:center;gap:14px;margin:8px 0 14px}
+.hero img{width:64px;height:64px;border-radius:16px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.today{display:flex;gap:14px;align-items:center}
+.ring{width:84px;height:84px;flex:none;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 20px var(--hf)}
+.ring b small{font:400 11px system-ui;color:var(--mu)}
+.st3{display:flex;gap:6px;flex:1}
+.st3>div{flex:1;background:var(--in);border-radius:10px;padding:8px 4px;text-align:center}
+.st3 b{display:block;font:700 20px var(--hf)}
+.st3 small{color:var(--mu);font-size:12px}
+.big{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:16px;margin-bottom:10px;border-radius:14px;font-size:17px}
+.big .ic{font-size:28px;line-height:1;width:34px;text-align:center}
+.big small{display:block;font-weight:400;font-size:13.5px;opacity:.85;margin-top:2px}
+.big.alt{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+.big.alt small{color:var(--mu)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2 .big{flex-direction:column;align-items:flex-start;gap:6px;margin:0;padding:14px}
+.due{border-left:4px solid var(--gd)}
+/* sure listesi */
+.sl{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--bd);cursor:pointer}
+.sl:last-child{border:0}
+.sl .no{width:34px;height:34px;flex:none;border-radius:50%;background:var(--in);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font:700 13px var(--hf);color:var(--ac)}
+.sl .nm{flex:1;min-width:0}
+.sl .nm b{display:block}
+.sl .ar{font:400 21px var(--ar);color:var(--gd);white-space:nowrap}
+.sl.on{background:rgba(15,118,110,.1);border-radius:10px}
+.bar{height:5px;border-radius:3px;background:var(--in);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--ac)}
+.cz{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.cz button{padding:10px 0;background:var(--card);color:var(--tx);border:1px solid var(--bd);position:relative;overflow:hidden}
+.cz button.on{background:var(--ac2);color:#fff}
+.cz button i{position:absolute;left:0;bottom:0;height:4px;background:var(--gd)}
+/* okuma */
+.mus{direction:rtl;text-align:justify;text-align-last:right;font-family:var(--ar);font-size:var(--fs,28px);line-height:2.15;word-spacing:2px}
+.mus .w{border-radius:6px;padding:0 1px;transition:background .2s,color .2s;cursor:pointer}
+.mus .w.h{color:transparent;background:var(--hid)}
+.mus.harf .w.h{background:transparent;color:transparent}
+.mus.harf .w.h i{font-style:normal;color:var(--mu)}
+.mus.silik .w.h{background:transparent;color:var(--tx);opacity:.13}
+.mus .w.cur{outline:2px dashed var(--gd);outline-offset:2px;animation:pl 1.3s infinite}
+@keyframes pl{50%{outline-color:transparent}}
+.mus .w.ok{color:var(--tx)}
+.mus .w.er{color:var(--er);text-decoration:underline wavy var(--er);text-underline-offset:9px}
+.mus .w.sk{color:var(--sk);text-decoration:underline dotted var(--sk);text-underline-offset:9px}
+.mus .w.hn{color:var(--hn)}
+.mus .pm{color:var(--gd);font-size:.7em}
+.mus .an{color:var(--gd);font-size:.85em;white-space:nowrap;padding:0 3px}
+.mus .an.on{background:rgba(183,134,43,.18);border-radius:8px}
+.sh{direction:rtl;text-align:center;font:400 22px var(--ar);color:var(--gd);margin:6px 0 2px}
+.shs{direction:ltr;text-align:center;font:700 13px var(--hf);color:var(--mu);letter-spacing:.05em;margin-top:8px}
+.bsm{direction:rtl;text-align:center;font:400 calc(var(--fs,28px)*.85) var(--ar);color:var(--mu);margin-bottom:4px}
+.dock{position:sticky;bottom:0;background:var(--bg);padding:10px 0 calc(6px + env(safe-area-inset-bottom,0px));margin-top:10px;border-top:1px solid var(--bd)}
+.heard{direction:rtl;text-align:right;font:400 18px var(--ar);color:var(--mu);min-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mic{width:72px;height:72px;border-radius:50%;font-size:30px;padding:0;flex:none;box-shadow:0 6px 18px rgba(15,118,110,.35)}
+.mic.on{background:var(--er);animation:mp 1.4s infinite}
+@keyframes mp{0%{box-shadow:0 0 0 0 rgba(194,65,12,.5)}70%{box-shadow:0 0 0 18px rgba(194,65,12,0)}100%{box-shadow:0 0 0 0 rgba(194,65,12,0)}}
+.dk{display:flex;gap:8px;align-items:center}
+.dk .sm{flex:1;padding:12px 4px;font-size:13.5px}
+.pg{height:6px;background:var(--in);border-radius:3px;overflow:hidden;margin:6px 0 10px;border:1px solid var(--bd)}
+.pg i{display:block;height:100%;background:linear-gradient(90deg,var(--ac),var(--gd));transition:width .3s}
+.kd{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kd button{padding:16px 6px;font-size:16px}
+.kd .ok{background:var(--ok);color:#fff}
+.kd .er{background:var(--er);color:#fff}
+.lg{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--mu);margin:4px 0}
+.lg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;background:var(--c)}
+/* sonuç */
+.score{font:800 56px var(--hf);color:var(--ac);text-align:center;line-height:1.1}
+.st4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin:10px 0}
+.st4>div{background:var(--in);border-radius:10px;padding:8px 2px}
+.st4 b{display:block;font:700 20px var(--hf)}
+.st4 small{font-size:11.5px;color:var(--mu)}
+.el{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.el:last-child{border:0}
+.el .ar{font:400 24px var(--ar);direction:rtl}
+/* dinle */
+.ay{padding:10px 6px;border-bottom:1px solid var(--bd);border-radius:10px;cursor:pointer}
+.ay.on{background:rgba(15,118,110,.12)}
+.ay .t{direction:rtl;text-align:right;font:400 var(--fs,28px)/2 var(--ar)}
+.ay .t.gz{filter:blur(7px)}
+.ay .m{font-size:14px;color:var(--mu);margin-top:4px}
+.pl{display:flex;gap:8px;align-items:center;justify-content:center;margin:8px 0}
+.pl button{min-width:56px;font-size:20px;padding:10px}
+.pl .pp{width:64px;height:64px;border-radius:50%;font-size:26px}
+.wait{text-align:center;font-weight:700;color:var(--gd);min-height:22px}
+/* ilerleme */
+.hm{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:3px}
+.hm i{aspect-ratio:1;border-radius:3px;background:var(--in);border:1px solid var(--bd)}
+.hm i.l1{background:rgba(15,118,110,.3)}.hm i.l2{background:rgba(15,118,110,.55)}.hm i.l3{background:rgba(15,118,110,.8)}.hm i.l4{background:var(--gd)}
+.cmap{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.cmap div{border-radius:8px;padding:8px 0;text-align:center;font:700 13px var(--hf);border:1px solid var(--bd);background:var(--in)}
+.cmap small{display:block;font:400 10.5px system-ui;color:var(--mu)}
+.toast{position:fixed;left:50%;bottom:calc(110px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;max-width:90%;text-align:center;animation:pop .25s}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:55;display:flex;align-items:flex-end;justify-content:center}
+.sheet>div{background:var(--card);width:100%;max-width:600px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.sw{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);gap:10px}
+.sw:last-child{border:0}
+.sw select,.sw input{width:auto;max-width:55%}
+.res{padding:10px 0;border-bottom:1px solid var(--bd)}
+.res:last-child{border:0}
+.res .t{direction:rtl;text-align:right;font:400 22px/1.9 var(--ar)}
+</style></head><body>
+<div id="splash"><img src="logo.png" alt=""><div class="t">Hafız Kardeşim</div><div class="a">حَافِظْ</div></div>
+<main><div id="app"></div></main>
+<div id="ov"></div>
+<script src="quran.js"></script>
+<script>
+"use strict";
+var $=function(s){return document.querySelector(s)};
+/* ---------- Kur'an verisi ---------- */
+var TR=["Fâtiha","Bakara","Âl-i İmrân","Nisâ","Mâide","En'âm","A'râf","Enfâl","Tevbe","Yûnus","Hûd","Yûsuf","Ra'd","İbrâhîm","Hicr","Nahl","İsrâ","Kehf","Meryem","Tâhâ","Enbiyâ","Hac","Mü'minûn","Nûr","Furkân","Şuarâ","Neml","Kasas","Ankebût","Rûm","Lokmân","Secde","Ahzâb","Sebe'","Fâtır","Yâsîn","Sâffât","Sâd","Zümer","Mü'min","Fussilet","Şûrâ","Zuhruf","Duhân","Câsiye","Ahkâf","Muhammed","Fetih","Hucurât","Kâf","Zâriyât","Tûr","Necm","Kamer","Rahmân","Vâkıa","Hadîd","Mücâdele","Haşr","Mümtehine","Saf","Cuma","Münâfikûn","Teğâbün","Talâk","Tahrîm","Mülk","Kalem","Hâkka","Meâric","Nûh","Cin","Müzzemmil","Müddessir","Kıyâme","İnsân","Mürselât","Nebe'","Nâziât","Abese","Tekvîr","İnfitâr","Mutaffifîn","İnşikâk","Bürûc","Târık","A'lâ","Gâşiye","Fecr","Beled","Şems","Leyl","Duhâ","İnşirâh","Tîn","Alak","Kadir","Beyyine","Zilzâl","Âdiyât","Kâria","Tekâsür","Asr","Hümeze","Fîl","Kureyş","Mâûn","Kevser","Kâfirûn","Nasr","Tebbet","İhlâs","Felak","Nâs"];
+var A=QD.a,SU=QD.s,ST=[0,0];for(var s=1;s<=114;s++)ST[s+1]=ST[s]+SU[s-1][1];
+function ix(s,a){return ST[s]+a-1}
+function sn(s){return TR[s-1]}
+var BASMALA="بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+function an(n){return String(n).replace(/[0-9]/g,function(d){return"٠١٢٣٤٥٦٧٨٩"[d]})}
+/* ---------- Arapça karşılaştırma ---------- */
+var HAR=/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u0640\u200c\u200d\u200f]/g;
+function nrm(w){return String(w).replace(HAR,"").replace(/[ٱأإآٲٳ]/g,"ا").replace(/ة/g,"ه").replace(/[ىی]/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").replace(/ء/g,"").replace(/ک/g,"ك").replace(/[^\u0621-\u064A]/g,"")}
+function skel(n){return n.replace(/[اويى]/g,"")}
+function lev(a,b){if(a===b)return 0;var m=a.length,n=b.length;if(!m)return n;if(!n)return m;var p=[],i,j;for(j=0;j<=n;j++)p[j]=j;
+  for(i=1;i<=m;i++){var q=[i];for(j=1;j<=n;j++)q[j]=Math.min(p[j]+1,q[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=q}return p[n]}
+function rat(a,b){var L=Math.max(a.length,b.length);return L?1-lev(a,b)/L:0}
+function sim(h,w){var r=rat(h,w.n);if(w.k.length>=2){var k=skel(h);if(k.length>=2)r=Math.max(r,rat(k,w.k)*.97)}return r}
+var MUQ={"الم":1,"المص":1,"الر":1,"المر":1,"كهيعص":1,"طه":1,"طسم":1,"طس":1,"يس":1,"ص":1,"حم":1,"عسق":1,"ق":1,"ن":1};
+var HARF={"الف":1,"لام":1,"ميم":1,"صاد":1,"را":1,"راء":1,"كاف":1,"ها":1,"هاء":1,"يا":1,"ياء":1,"عين":1,"طا":1,"طاء":1,"سين":1,"حا":1,"حاء":1,"قاف":1,"نون":1,"ر":1,"م":1,"ل":1};
+var GIRIS={"اعوذ":1,"بالله":1,"من":1,"الشيطان":1,"الرجيم":1,"بسم":1,"الله":1,"الرحمن":1,"الرحيم":1};
+/* ---------- kayıt ---------- */
+var DB={ay:{},days:{},err:[],hist:[],set:{goal:10,hide:"gizli",fs:28,meal:1,rec:"Husary_Muallim_128kbps",th:"",lang:"ar-SA",bs:1},last:null,n:0};
+try{var o=JSON.parse(localStorage.getItem("hk1")||"null");if(o&&o.ay){for(var k in o)DB[k]=o[k];for(k in{goal:1,hide:1,fs:1,meal:1,rec:1,th:1,lang:1,bs:1})if(o.set[k]===undefined)o.set[k]={goal:10,hide:"gizli",fs:28,meal:1,rec:"Husary_Muallim_128kbps",th:"",lang:"ar-SA",bs:1}[k]}}catch(e){}
+function store(){try{localStorage.setItem("hk1",JSON.stringify(DB))}catch(e){}}
+function applyTheme(){var r=document.documentElement;if(DB.set.th)r.setAttribute("data-theme",DB.set.th);else r.removeAttribute("data-theme");r.style.setProperty("--fs",DB.set.fs+"px")}
+applyTheme();
+var DAY=864e5;
+function dkey(t){var d=new Date(t);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function today0(){var d=new Date();d.setHours(0,0,0,0);return d.getTime()}
+function esc(t){return String(t).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function trn(t){return String(t).toLocaleLowerCase("tr").replace(/[âä]/g,"a").replace(/[îı]/g,"i").replace(/[ûü]/g,"u").replace(/ö/g,"o").replace(/ç/g,"c").replace(/ş/g,"s").replace(/ğ/g,"g").replace(/[^a-z0-9]/g,"")}
+function toast(t,ms){var e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);setTimeout(function(){e.remove()},ms||2200)}
+function streak(){var t=today0(),n=0;if(!(DB.days[dkey(t)]||{}).ss)t-=DAY;while((DB.days[dkey(t)]||{}).ss){n++;t-=DAY}return n}
+function known(i){var r=DB.ay[i];return r&&r.lv>=2}
+function dueList(){var e=today0()+DAY,L=[];for(var k in DB.ay){var r=DB.ay[k];if(r.due&&r.due<e)L.push(+k)}return L.sort(function(a,b){return a-b})}
+// birbirini izleyen ayetleri "Sure a–b" parçalarına ayır
+function chunks(L){var out=[],c=null;L.forEach(function(i){if(c&&i===c.b+1&&A[i][0]===A[c.a][0])c.b=i;else{c={a:i,b:i};out.push(c)}});return out}
+function rlabel(L){if(!L.length)return"";var a=A[L[0]],b=A[L[L.length-1]],cont=L.length===L[L.length-1]-L[0]+1;
+  if(!cont)return chunks(L).map(function(c){return sn(A[c.a][0])+" "+A[c.a][1]+(c.b>c.a?"–"+A[c.b][1]:"")}).slice(0,3).join(", ")+(chunks(L).length>3?" …":"");
+  if(a[0]===b[0])return sn(a[0])+" "+(a[1]===b[1]?a[1]:a[1]+"–"+b[1]);return sn(a[0])+" "+a[1]+" – "+sn(b[0])+" "+b[1]}
+function range(i,j){var L=[];for(var k=i;k<=j;k++)L.push(k);return L}
+/* ---------- ekran yönetimi ---------- */
+var V={v:"menu"},S=null,P=null;
+function go(v,x){if(V.v==="rec"&&v!=="res")Ses.stop();if(V.v==="listen"&&v!=="listen")plStop();V={v:v};for(var k in x||{})V[k]=x[k];window.scrollTo(0,0);render()}
+function head(t,right,back){return'<div class="top"><button class="back" onclick="'+(back||"go(\'menu\')")+'">← '+(back?"Geri":"Ana menü")+"</button>"+(right||"")+'</div><h1 style="margin-bottom:8px">'+t+"</h1>"}
+function render(){var f={menu:menu,pick:pick,rec:recV,res:resV,listen:listenV,search:searchV,prog:progV,errs:errsV,set:setV,help:helpV}[V.v]||menu;$("#app").innerHTML=f();if(V.v==="rec")afterRec();if(V.v==="listen")plPaint()}
+function back(){if(document.querySelector(".sheet")){closeSheet();return"ok"}if(V.v==="menu")return"exit";var b=document.querySelector(".top .back");if(b)b.click();else go("menu");return"ok"}
+/* ---------- ana menü ---------- */
+function menu(){
+  var t=DB.days[dkey(Date.now())]||{},g=DB.set.goal,d=t.ay||0,p=Math.min(1,d/g),due=dueList(),nk=0;for(var k in DB.ay)if(DB.ay[k].lv>=2)nk++;
+  var C=2*Math.PI*36,h='<div class="hero"><img src="logo.png" alt=""><div><h1>Hafız Kardeşim</h1><div class="mu">Ezberini dinlet, hatanı gör, tekrarla.</div></div></div>';
+  h+='<div class="card today"><div class="ring"><svg width="84" height="84"><circle cx="42" cy="42" r="36" fill="none" stroke="var(--in)" stroke-width="9"/><circle cx="42" cy="42" r="36" fill="none" stroke="'+(p>=1?"var(--gd)":"var(--ac)")+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-p))+'"/></svg><b>'+d+"<small>/ "+g+" ayet</small></b></div>";
+  h+='<div class="st3"><div><b>🔥 '+streak()+'</b><small>gün seri</small></div><div><b>'+nk+'</b><small>ezber ayet</small></div><div><b>'+due.length+'</b><small>tekrar</small></div></div></div>';
+  if(due.length)h+='<button class="big alt due" onclick="startDue()"><span class="ic">🔁</span><span>Bugünün tekrarı · '+due.length+' ayet<small>'+esc(rlabel(due))+"</small></span></button>";
+  if(DB.last&&DB.last.L)h+='<button class="big alt" onclick="cont()"><span class="ic">▶</span><span>Devam et<small>'+esc(rlabel(DB.last.L))+" · "+(DB.last.m==="kardes"?"Kardeşime dinlet":"Sesli ezber")+"</small></span></button>";
+  h+='<button class="big" onclick="go(\'pick\',{m:\'ses\'})"><span class="ic">🎙️</span><span>Ezber Dinlet<small>Ayetler gizli; sen okursun, uygulama dinler, doğruyu açar, hatayı gösterir</small></span></button>';
+  h+='<button class="big gd" onclick="go(\'pick\',{m:\'kardes\'})"><span class="ic">🤝</span><span>Kardeşime Dinlet<small>Telefonu bir arkadaşın tutar, sen okursun, o doğru/hata işaretler</small></span></button>';
+  h+='<div class="grid2"><button class="big alt" onclick="go(\'pick\',{m:\'dinle\'})"><span class="ic">🎧</span><span>Dinle & Tekrarla<small>Ayet ayet, tekrar sayılı</small></span></button>';
+  h+='<button class="big alt" onclick="go(\'search\')"><span class="ic">🔍</span><span>Sesle Bul<small>Oku, ayeti bulsun</small></span></button>';
+  h+='<button class="big alt" onclick="go(\'prog\')"><span class="ic">📈</span><span>İlerlemem<small>Seri, cüz haritası</small></span></button>';
+  h+='<button class="big alt" onclick="go(\'errs\')"><span class="ic">📕</span><span>Hata Defteri<small>'+(DB.err.length?DB.err.length+" kayıt":"Hatalarını çalış")+"</small></span></button></div>";
+  h+='<div class="btns"><button class="g" onclick="go(\'set\')">⚙️ Ayarlar</button><button class="g" onclick="go(\'help\')">❔ Nasıl kullanılır</button></div>';
+  return h}
+function cont(){var l=DB.last;startRec(l.L,l.m)}
+function startDue(){var L=dueList();if(L.length>60)L=L.slice(0,60);startRec(L,"ses",1)}
+/* ---------- bölüm seçimi ---------- */
+function sStr(s){var n=SU[s-1][1],k=0;for(var a=1;a<=n;a++)if(known(ix(s,a)))k++;return k/n}
+function pick(){
+  var m=V.m,tl={ses:"Ezber Dinlet",kardes:"Kardeşime Dinlet",dinle:"Dinle & Tekrarla"}[m],tb=V.tb||"sure",h=head(tl);
+  h+='<div class="seg"><button class="'+(tb==="sure"?"on":"")+'" onclick="V.tb=\'sure\';render()">Sure</button><button class="'+(tb==="cuz"?"on":"")+'" onclick="V.tb=\'cuz\';render()">Cüz</button><button class="'+(tb==="sayfa"?"on":"")+'" onclick="V.tb=\'sayfa\';render()">Sayfa</button></div>';
+  if(V.s){var n=SU[V.s-1][1],a1=V.a1||1,a2=V.a2||n,opt=function(sel){var o="";for(var i=1;i<=n;i++)o+='<option'+(i===sel?" selected":"")+">"+i+"</option>";return o};
+    h+='<div class="card"><div class="row" style="align-items:flex-start"><div><b style="font-size:18px">'+V.s+". "+sn(V.s)+'</b><div class="mu">'+n+' ayet · '+Math.round(sStr(V.s)*100)+'% ezber</div></div><div class="sl" style="border:0;padding:0;justify-content:flex-end;flex:none"><span class="ar">'+SU[V.s-1][0]+"</span></div></div>";
+    h+='<div class="lbl">Ayet aralığı</div><div class="row"><select id="a1" onchange="selA()">'+opt(a1)+'</select><span style="flex:none">–</span><select id="a2" onchange="selA()">'+opt(a2)+"</select></div>";
+    h+='<div class="btns" style="margin-top:6px"><button class="g" onclick="V.a1=1;V.a2='+n+';render()">Tamamı</button>'+(n>10?'<button class="g" onclick="V.a2=Math.min('+n+',(V.a1||1)+4);render()">5 ayet</button><button class="g" onclick="V.a2=Math.min('+n+',(V.a1||1)+9);render()">10 ayet</button>':"")+"</div>";
+    h+=modeOpts()+'<button style="width:100%;padding:14px;margin-top:10px" onclick="pickGo(range(ix('+V.s+','+a1+'),ix('+V.s+','+a2+')))">'+(m==="dinle"?"▶ Dinlemeye başla":"Başla")+"</button></div>"}
+  if(tb==="sure"){
+    h+='<input type="text" id="q" placeholder="Sure ara (ör. yasin, mülk, 36)" value="'+esc(V.q||"")+'" oninput="V.q=this.value;fl()" style="margin-bottom:8px">';
+    h+='<div class="lbl" style="margin-top:4px">Hızlı seçim</div><div>'+[[1,"Fâtiha"],[36,"Yâsîn"],[67,"Mülk"],[18,"Kehf"],[55,"Rahmân"],[78,"Amme başı"],[112,"İhlâs"]].map(function(x){return'<span class="tg" style="cursor:pointer;font-size:13px;padding:5px 9px" onclick="selS('+x[0]+')">'+x[1]+"</span>"}).join("")+'<span class="tg" style="cursor:pointer;font-size:13px;padding:5px 9px" onclick="pickGo(range(ix(78,1),A.length-1))">Amme cüzü (tamamı)</span><span class="tg" style="cursor:pointer;font-size:13px;padding:5px 9px" onclick="pickGo(range(ix(2,285),ix(2,286)))">Âmenerrasûlü</span><span class="tg" style="cursor:pointer;font-size:13px;padding:5px 9px" onclick="pickGo([ix(2,255)])">Âyete\'l-Kürsî</span></div>';
+    h+='<div class="card" id="sl" style="margin-top:8px">'+slist()+"</div>"}
+  else if(tb==="cuz"){h+='<div class="card"><div class="mu" style="margin-bottom:8px">Bir cüz seç; altındaki şerit o cüzdeki ezber oranını gösterir.</div><div class="cz">';
+    for(var c=1;c<=30;c++){var L=jl(c),k=L.filter(known).length;h+='<button class="'+(V.cz===c?"on":"")+'" onclick="V.cz='+c+';render()">'+c+'<i style="width:'+(k/L.length*100)+'%"></i></button>'}
+    h+="</div>";if(V.cz){var L2=jl(V.cz);h+='<div class="lbl">'+V.cz+". cüz · "+L2.length+" ayet</div><div class=\"mu\">"+esc(rlabel([L2[0]]))+" → "+esc(rlabel([L2[L2.length-1]]))+"</div>"+modeOpts()+'<button style="width:100%;padding:14px;margin-top:10px" onclick="pickGo(jl('+V.cz+'))">Başla</button>'}h+="</div>"}
+  else{var p1=V.p1||1,p2=V.p2||p1;h+='<div class="card"><div class="mu">Medine mushafı sayfa numarası (1–604). Hafızlar genelde sayfa sayfa ezberler.</div><div class="lbl">Sayfa aralığı</div><div class="row"><input type="number" id="p1" min="1" max="604" value="'+p1+'" onchange="selP()"><span style="flex:none">–</span><input type="number" id="p2" min="1" max="604" value="'+p2+'" onchange="selP()"></div>';
+    var LP=pl(p1,p2);h+='<div class="mu" style="margin-top:8px">'+(LP.length?LP.length+" ayet · "+esc(rlabel(LP)):"Geçersiz aralık")+"</div>"+modeOpts()+'<button style="width:100%;padding:14px;margin-top:10px" '+(LP.length?"":"disabled ")+'onclick="pickGo(pl('+p1+','+p2+'))">Başla</button></div>'}
+  return h}
+function modeOpts(){if(V.m==="dinle")return"";var hd=DB.set.hide;return'<div class="lbl">Ayetler nasıl gizlensin?</div><div class="seg" style="margin:0"><button class="'+(hd==="gizli"?"on":"")+'" onclick="DB.set.hide=\'gizli\';store();render()">Tam gizli</button><button class="'+(hd==="harf"?"on":"")+'" onclick="DB.set.hide=\'harf\';store();render()">İlk harf</button><button class="'+(hd==="silik"?"on":"")+'" onclick="DB.set.hide=\'silik\';store();render()">Silik</button></div>'}
+function jl(c){var L=[];for(var i=0;i<A.length;i++)if(A[i][2]===c)L.push(i);return L}
+function pl(p1,p2){var L=[];if(p1<1||p2>604||p2<p1)return L;for(var i=0;i<A.length;i++)if(A[i][3]>=p1&&A[i][3]<=p2)L.push(i);return L}
+function selP(){var a=parseInt($("#p1").value,10)||1,b=parseInt($("#p2").value,10)||a;a=Math.max(1,Math.min(604,a));b=Math.max(a,Math.min(604,b));V.p1=a;V.p2=b;render()}
+function selA(){var a=+$("#a1").value,b=+$("#a2").value;if(b<a)b=a;V.a1=a;V.a2=b;render()}
+function selS(s){V.s=s;V.a1=1;V.a2=SU[s-1][1];window.scrollTo(0,0);render()}
+function slist(){var q=trn(V.q||""),h="";for(var s=1;s<=114;s++){if(q&&trn(sn(s)).indexOf(q)<0&&String(s)!==q)continue;var p=sStr(s);
+  h+='<div class="sl'+(V.s===s?" on":"")+'" onclick="selS('+s+')"><span class="no">'+s+'</span><span class="nm"><b>'+sn(s)+'</b><span class="mu">'+SU[s-1][1]+" ayet"+(p?" · %"+Math.round(p*100)+" ezber":"")+"</span>"+(p?'<div class="bar"><i style="width:'+p*100+'%"></i></div>':"")+'</span><span class="ar">'+SU[s-1][0].replace(/^سُورَةُ\s*/,"")+"</span></div>"}
+  return h||'<div class="mu c">Sure bulunamadı.</div>'}
+function fl(){$("#sl").innerHTML=slist()}
+function pickGo(L){if(!L.length)return;if(V.m==="dinle"){plStart(L);return}startRec(L,V.m)}
+/* ---------- ezber oturumu ---------- */
+function startRec(L,m,isDue){
+  var W=[];L.forEach(function(ai,li){var t=A[ai][4].split(" "),first=true;t.forEach(function(x,wi){if(!x)return;var n=nrm(x);
+      if(!n){if(W.length&&W[W.length-1].li===li)W[W.length-1].pm=(W[W.length-1].pm||"")+" "+x;return}
+      var muq=wi===0&&A[ai][1]<=2&&MUQ[n]&&(/\u0653/.test(x)||n==="طه"||n==="يس");
+      W.push({li:li,ai:ai,t:x,n:n,k:skel(n),st:0,muq:muq?1:0,end:0});first=false})});
+  for(var i=0;i<W.length;i++)if(i===W.length-1||W[i+1].li!==W[i].li)W[i].end=1;
+  S={m:m,L:L,W:W,cur:0,t0:Date.now(),buf:"",miss:0,mq:0,uoff:0,heard:"",due:!!isDue,on:false};
+  DB.last={L:L,m:m};store();go("rec")}
+function recV(){
+  var h=head(esc(rlabel(S.L)),'<button class="g" onclick="openSheet(recSet())">⚙️</button>','finish()'),hd=DB.set.hide;
+  h+='<div class="pg"><i id="pgb" style="width:0"></i></div>';
+  h+='<div class="card"><div class="mus '+hd+'" id="mus">';
+  var lastS=0,li=-1;
+  S.W.forEach(function(w,i){var a=A[w.ai];
+    if(w.li!==li){li=w.li;var prev=li?S.L[li-1]:-1;
+      if(a[0]!==lastS||prev!==w.ai-1){lastS=a[0];if(a[1]===1||li===0||prev!==w.ai-1)h+='<div class="shs">'+sn(a[0]).toLocaleUpperCase("tr")+(a[1]===1?"":" · "+a[1]+". ayetten")+'</div>';
+        if(a[1]===1){h+='<div class="sh">'+SU[a[0]-1][0]+"</div>";if(a[0]!==1&&a[0]!==9&&DB.set.bs)h+='<div class="bsm">'+BASMALA+"</div>"}}}
+    h+='<span class="w" id="w'+i+'" onclick="tapW('+i+')">'+wHtml(w)+"</span>"+(w.pm?'<span class="pm">'+w.pm+"</span>":"")+" ";
+    if(w.end)h+='<span class="an" id="an'+w.li+'">﴿'+an(a[1])+"﴾</span> "});
+  h+="</div></div>";
+  h+='<div class="lg"><span style="--c:var(--tx)">doğru</span><span style="--c:var(--er)">hatalı</span><span style="--c:var(--sk)">atlandı</span><span style="--c:var(--hn)">ipucu</span></div>';
+  h+='<div class="dock">';
+  if(S.m==="ses"){h+='<div class="heard" id="heard">'+(Ses.ok()?"":"<span style=\"font:14px system-ui;direction:ltr\">Bu cihazda sesli tanıma yok. Aşağıdaki düğmelerle devam edebilirsin.</span>")+'</div><div class="dk"><button class="g sm" onclick="hint()">💡 İpucu</button><button class="g sm" onclick="ayahOpen()">📖 Ayeti aç</button><button class="mic'+(S.on?" on":"")+'" id="mic" onclick="micT()">🎙️</button><button class="g sm" onclick="markNext(1)">✓ Doğru say</button><button class="g sm" onclick="finish()">🏁 Bitir</button></div>'}
+  else h+='<div class="mu c" style="margin-bottom:6px" id="heard">Okuyan okusun, sen sıradaki kelimeyi işaretle.</div><div class="kd"><button class="ok" onclick="markNext(1)">✓ Doğru</button><button class="er" onclick="markNext(2)">✗ Hata</button><button class="g" onclick="hint()">💡 Hatırlat</button><button class="g" onclick="ayahOk()">✓✓ Ayet doğru</button></div><button class="g" style="width:100%;margin-top:8px" onclick="finish()">🏁 Bitir ve sonucu gör</button>';
+  return h+"</div>"}
+function wHtml(w){if(w.st||DB.set.hide!=="harf")return w.t;var m=w.t.match(/^.[\u064B-\u065F\u0670\u0653-\u0655\u06E1]*/);return"<i>"+m[0]+"</i>"+w.t.slice(m[0].length)}
+var CL=["h","ok","er","sk","hn"];
+function paint(i){var w=S.W[i],e=$("#w"+i);if(!e)return;e.className="w "+CL[w.st]+(i===S.cur&&S.cur<S.W.length?" cur":"");e.innerHTML=wHtml(w)}
+function afterRec(){S.W.forEach(function(w,i){paint(i)});prog();scrollCur(true)}
+function prog(){var d=S.W.filter(function(w){return w.st}).length,b=$("#pgb");if(b)b.style.width=(d/S.W.length*100)+"%";
+  document.querySelectorAll(".an.on").forEach(function(e){e.classList.remove("on")});var c=S.W[Math.min(S.cur,S.W.length-1)];var e=$("#an"+c.li);if(e)e.classList.add("on")}
+function scrollCur(now){var e=$("#w"+S.cur);if(!e)return;var r=e.getBoundingClientRect(),vh=window.innerHeight;if(now||r.top<80||r.bottom>vh-220)window.scrollTo({top:scrollY+r.top-vh*.35,behavior:now?"auto":"smooth"})}
+function setW(i,st,heard){var w=S.W[i];if(!w)return;w.st=st;if(heard!==undefined)w.h=heard;paint(i)}
+function adv(n){var o=S.cur;S.cur=Math.min(S.W.length,S.cur+n);paint(o);if(S.cur<S.W.length)paint(S.cur);prog();scrollCur();
+  if(S.cur>=S.W.length){Ses.stop();setTimeout(finish,700)}}
+function markNext(st){if(S.cur>=S.W.length)return;setW(S.cur,st);if(st===1&&S.W[S.cur].st===1)S.W[S.cur].man=1;S.miss=0;S.buf="";adv(1)}
+function hint(){if(S.cur>=S.W.length)return;setW(S.cur,4);S.miss=0;S.buf="";adv(1)}
+function ayahOpen(){if(S.cur>=S.W.length)return;var li=S.W[S.cur].li,n=0;for(var i=S.cur;i<S.W.length&&S.W[i].li===li;i++){setW(i,4);n++}adv(n)}
+function ayahOk(){if(S.cur>=S.W.length)return;var li=S.W[S.cur].li,n=0;for(var i=S.cur;i<S.W.length&&S.W[i].li===li;i++){setW(i,1);n++}adv(n)}
+function tapW(i){var w=S.W[i];
+  if(!w.st){if(i===S.cur){hint();return}openSheet('<div class="c" style="font:400 34px var(--ar);direction:rtl">'+w.t+'</div><div class="mu c" style="margin:8px 0 12px">Bu kelimeye henüz gelmedin. Bakarsan ipucu sayılmaz, ama ezberin için iyi olmaz 🙂</div><button class="g" style="width:100%" onclick="closeSheet()">Kapat</button>');return}
+  openSheet('<div class="c" style="font:400 36px var(--ar);direction:rtl">'+w.t+'</div><div class="mu c">'+sn(A[w.ai][0])+" "+A[w.ai][1]+". ayet</div>"+(w.h?'<div class="c" style="margin:10px 0"><span class="mu">Duyulan: </span><span style="font:400 24px var(--ar)">'+esc(w.h)+"</span></div>":"")
+    +'<div class="btns"><button class="'+(w.st===1?"":"g")+'" onclick="reMark('+i+',1)">✓ Doğru</button><button class="'+(w.st===2?"":"g")+'" style="'+(w.st===2?"background:var(--er)":"")+'" onclick="reMark('+i+',2)">✗ Hatalı</button><button class="g" onclick="closeSheet()">Kapat</button></div>')}
+function reMark(i,st){setW(i,st);closeSheet();prog()}
+function recSet(){return'<h2 style="margin-top:0">Görünüm</h2><div class="sw"><span>Yazı boyu</span><span class="row" style="flex:none"><button class="g" onclick="fsz(-2)">A−</button><button class="g" onclick="fsz(2)">A+</button></span></div><div class="sw"><span>Gizleme</span><select onchange="DB.set.hide=this.value;store();$(\'#mus\').className=\'mus \'+this.value;afterRec()"><option value="gizli"'+(DB.set.hide==="gizli"?" selected":"")+'>Tam gizli</option><option value="harf"'+(DB.set.hide==="harf"?" selected":"")+'>İlk harf</option><option value="silik"'+(DB.set.hide==="silik"?" selected":"")+">Silik</option></select></div>"+(S.m==="ses"?'<div class="sw"><span>Yanlışsa bir kelime geri al</span><button class="g" onclick="undo();closeSheet()">↶ Geri al</button></div>':"")+'<button style="width:100%;margin-top:10px" onclick="closeSheet()">Tamam</button>'}
+function undo(){if(S.cur<=0)return;S.cur--;setW(S.cur,0);if(S.cur+1<S.W.length)paint(S.cur+1);prog();scrollCur()}
+function fsz(d){DB.set.fs=Math.max(18,Math.min(48,DB.set.fs+d));store();applyTheme()}
+function openSheet(h){$("#ov").innerHTML='<div class="sheet" onclick="if(event.target===this)closeSheet()"><div>'+h+"</div></div>"}
+function closeSheet(){$("#ov").innerHTML=""}
+/* --- sesli tanıma: Android/iPhone kabuğu window.HKSes sağlar, tarayıcıda Web Speech API --- */
+var Ses=(function(){var wr=null,want=false,cb=null;
+  function nat(){return window.HKSes&&HKSes.var&&String(HKSes.var())==="1"}
+  function web(){return window.webkitSpeechRecognition||window.SpeechRecognition}
+  var o={ok:function(){return nat()||!!web()},
+    start:function(f){cb=f;want=true;if(nat()){HKSes.basla(DB.set.lang);return true}
+      var R=web();if(!R)return false;try{wr=new R();wr.lang=DB.set.lang;wr.continuous=true;wr.interimResults=true;wr.maxAlternatives=1;
+        wr.onresult=function(e){for(var i=e.resultIndex;i<e.results.length;i++)window.hkSes(e.results[i].isFinal?"son":"kismi",e.results[i][0].transcript)};
+        wr.onerror=function(e){if(e.error==="not-allowed")window.hkSes("izin-yok","");else if(e.error!=="no-speech"&&e.error!=="aborted")window.hkSes("hata",e.error)};
+        wr.onend=function(){if(want)try{wr.start()}catch(x){}else window.hkSes("bitti","")};wr.start();window.hkSes("basladi","")}catch(x){return false}return true},
+    stop:function(){if(!want)return;want=false;if(nat())HKSes.dur();else if(wr)try{wr.stop()}catch(x){}window.hkSes("bitti","")},
+    on:function(){return want},_off:function(){want=false},cb:function(k,t){if(cb)cb(k,t)}};return o})();
+window.hkSes=function(k,t){if(k==="bitti")Ses._off();Ses.cb(k,t||"")};
+function micT(){if(!S)return;if(Ses.on()){Ses.stop();return}
+  if(!Ses.ok()){toast("Bu cihazda sesli tanıma yok. Düğmelerle devam edebilirsin.",3000);return}
+  S.uoff=0;Ses.start(onRecSes)}
+function micUI(){var m=$("#mic");if(m)m.className="mic"+(Ses.on()?" on":"")}
+function onRecSes(k,t){if(!S||V.v!=="rec")return;
+  if(k==="basladi"||k==="bitti"){S.on=Ses.on();micUI();if(k==="basladi")toast("Dinliyorum… okumaya başla",1500);return}
+  if(k==="izin-yok"){Ses.stop();micUI();toast("Mikrofon izni gerekiyor. Ayarlardan izin ver.",3500);return}
+  if(k==="hata"){var M={ag:"İnternet bağlantısı gerekiyor.",network:"İnternet bağlantısı gerekiyor.",dil:"Telefonda Arapça ses tanıma yok. Google uygulaması > Ses > Çevrimdışı tanıma'dan Arapça indir.","language-not-supported":"Arapça ses tanıma desteklenmiyor.",yok:"Ses tanıma hizmeti bulunamadı."};toast(M[t]||"Ses tanıma hatası ("+t+")",3500);if(t!=="mesgul"){Ses.stop();micUI()}return}
+  var tk=t.trim().split(/\s+/).filter(Boolean);var e=$("#heard");if(e)e.textContent=tk.slice(-8).join(" ");
+  var upto=k==="son"?tk.length:tk.length-1;
+  for(var i=S.uoff;i<upto;i++)feed(tk[i]);
+  S.uoff=k==="son"?0:Math.max(S.uoff,upto)}
+// duyulan bir kelimeyi sıradaki beklenen kelimeyle eşleştir
+function feed(raw){if(!S||S.cur>=S.W.length)return;var h=nrm(raw);if(!h)return;var W=S.W,c=S.cur,w=W[c];
+  if(w.muq){if(HARF[h]||sim(h,w)>=.7){S.mq++;if(sim(h,w)>=.7||S.mq>=w.n.length){setW(c,w.st===4?4:1,raw);S.mq=0;adv(1)}return}
+    if(S.mq){setW(c,1);S.mq=0;adv(1);feed(raw);return}}
+  var cands=[h];if(S.buf)cands.push(S.buf+h);
+  for(var q=0;q<cands.length;q++)if(sim(cands[q],w)>=.7){if(!w.st)setW(c,1,raw);S.buf="";S.miss=0;adv(1);return}
+  // atlanan kelimeler: ileride (en çok 3) eşleşme var mı
+  for(var j=1;j<=3&&c+j<W.length;j++){var x=W[c+j];if(x.n.length>=2&&sim(h,x)>=.84){
+      for(var y=c;y<c+j;y++)if(!W[y].st)setW(y,y===c&&S.miss?2:3,y===c&&S.miss?S.lh:"");S.lh="";setW(c+j,1,raw);S.buf="";S.miss=0;adv(j+1);return}}
+  // başta eûzü-besmele ya da tekrar edilen önceki kelime: yok say
+  if(c===0&&GIRIS[h])return;if(c>0&&sim(h,W[c-1])>=.8){S.buf="";return}
+  // kelimenin ilk parçası olabilir (ör. يا + ايها)
+  if(!S.buf&&w.n.indexOf(h)===0&&h.length<w.n.length){S.buf=h;return}
+  S.buf=h;S.miss++;
+  if(S.miss>=2){setW(c,2,(S.lh?S.lh+" ":"")+raw);S.miss=0;S.buf="";S.lh="";adv(1)}else S.lh=raw}
+function finish(){if(!S)return go("menu");Ses.stop();
+  if(!S.W.some(function(w){return w.st})){S=null;go("menu");return}
+  if(!S.done){S.done=1;S.t1=Date.now();saveSession()}
+  go("res")}
+function score(W){var t=0,ok=0;W.forEach(function(w){if(!w.st)return;t++;if(w.st===1)ok++;else if(w.st===4)ok+=.5});return t?Math.round(ok/t*100):0}
+var INT=[1,1,3,7,14,30,60];
+function saveSession(){var now=Date.now(),dur=Math.round((S.t1-S.t0)/1000),byA={};
+  S.W.forEach(function(w){(byA[w.ai]=byA[w.ai]||[]).push(w)});
+  var nA=0;Object.keys(byA).forEach(function(ai){var ws=byA[ai];if(!ws.some(function(w){return w.st}))return;nA++;
+    var sc=score(ws),r=DB.ay[ai]||{r:0,h:0,lv:0},ne=ws.filter(function(w){return w.st===2||w.st===3}).length;
+    r.r++;r.ok=sc;r.h+=ne;r.t=now;r.lv=sc>=90?Math.min(6,r.lv+1):sc<70?0:r.lv;r.due=today0()+INT[r.lv]*DAY;DB.ay[ai]=r;
+    ws.forEach(function(w,wi){if(w.st===2||w.st===3)DB.err.unshift({ai:+ai,t:w.t,h:w.h||"",k:w.st,ts:now})})});
+  if(DB.err.length>400)DB.err.length=400;
+  var dk=dkey(now),d=DB.days[dk]=DB.days[dk]||{ay:0,ss:0,sec:0};d.ay+=nA;d.ss++;d.sec+=dur;
+  S.sc=score(S.W);DB.hist.unshift({L:S.L.length>80?[S.L[0],S.L[S.L.length-1]]:S.L,c:S.L.length>80?1:0,m:S.m,sc:S.sc,ts:now,dur:dur});if(DB.hist.length>200)DB.hist.length=200;
+  DB.n=(DB.n||0)+1;store();if(DB.n%3===0)try{if(window.HKReklam)setTimeout(function(){HKReklam.goster()},900)}catch(e){}}
+function resV(){var W=S.W,c=[0,0,0,0,0];W.forEach(function(w){c[w.st]++});var dur=Math.round((S.t1-S.t0)/1000),bad=W.filter(function(w){return w.st===2||w.st===3});
+  var msg=S.sc>=95?"Mâşallah! Neredeyse kusursuz 🌟":S.sc>=85?"Çok iyi, birkaç küçük hata var 👏":S.sc>=70?"İyi gidiyor, hatalı yerleri tekrar et 💪":"Bu kısmı biraz daha çalışmak lazım 📖";
+  var h=head("Sonuç",null,"go('menu')")+'<div class="card"><div class="mu c">'+esc(rlabel(S.L))+" · "+(S.m==="kardes"?"Kardeşime dinlet":"Sesli ezber")+'</div><div class="score">%'+S.sc+'</div><div class="c" style="font-weight:600">'+msg+"</div>";
+  h+='<div class="st4"><div><b style="color:var(--ok)">'+c[1]+'</b><small>doğru</small></div><div><b style="color:var(--er)">'+c[2]+'</b><small>hatalı</small></div><div><b style="color:var(--sk)">'+c[3]+'</b><small>atlanan</small></div><div><b style="color:var(--hn)">'+c[4]+'</b><small>ipucu</small></div></div><div class="mu c">Süre '+Math.floor(dur/60)+" dk "+dur%60+" sn · Sonraki tekrar: "+nextDue()+"</div></div>";
+  if(bad.length){h+="<h2>Hatalı kelimeler</h2><div class=\"card\">";bad.slice(0,40).forEach(function(w){h+='<div class="el"><span><b>'+sn(A[w.ai][0])+" "+A[w.ai][1]+'</b><br><span class="mu">'+(w.st===3?"atlandı":w.h?"duyulan: <span style=\"font-family:var(--ar)\">"+esc(w.h)+"</span>":"hatalı")+'</span></span><span class="ar">'+w.t+"</span></div>"});h+="</div>"}
+  var last=S.L[S.L.length-1],nx=last+1<A.length&&A[last+1][0]===A[last][0]?range(last+1,Math.min(last+S.L.length,ix(A[last][0],SU[A[last][0]-1][1]))):null,badA=[];bad.forEach(function(w){if(badA.indexOf(w.ai)<0)badA.push(w.ai)});
+  h+='<div class="btns"><button onclick="startRec(S.L,S.m)">↻ Tekrar dene</button>'+(badA.length?'<button class="gd" onclick="startRec(['+badA.join(",")+'],S.m)">Sadece hatalı ayetler</button>':"")+(nx?'<button class="g" onclick="startRec(['+nx.join(",")+'],S.m)">Sonraki '+nx.length+" ayet →</button>":"")+'<button class="g" onclick="go(\'pick\',{m:\'dinle\'});plStart(S.L)">🎧 Bu kısmı dinle</button></div>';
+  return h}
+function nextDue(){var m=Infinity;S.L.forEach(function(i){var r=DB.ay[i];if(r&&r.due<m)m=r.due});if(m===Infinity)return"-";var d=Math.round((m-today0())/DAY);return d<=1?"yarın":d+" gün sonra"}
+/* ---------- dinle & tekrarla ---------- */
+var RECS=[["Husary_Muallim_128kbps","Husarî – öğretici (muallim)"],["Husary_128kbps","Mahmud Halil el-Husarî"],["Minshawy_Murattal_128kbps","Muhammed Sıddık el-Minşâvî"],["Alafasy_128kbps","Mişari Raşid el-Afâsî"],["Abdul_Basit_Murattal_192kbps","Abdulbasıt Abdussamed"],["MaherAlMuaiqly128kbps","Mâhir el-Muaykılî"],["Ghamadi_40kbps","Saad el-Gâmidî"],["Abdurrahmaan_As-Sudais_192kbps","Abdurrahman es-Sudeys"]];
+var AU=new Audio();AU.preload="auto";
+function url(ai,bs){var a=bs?[1,1]:A[ai],p=function(n){return("00"+n).slice(-3)};return"https://everyayah.com/data/"+DB.set.rec+"/"+p(a[0])+p(a[1])+".mp3"}
+function plStart(L){P={L:L,i:0,r:0,lp:0,rep:P?P.rep:1,loops:P?P.loops:1,gap:P?P.gap:0,hide:P?P.hide:0,sp:P?P.sp:1,on:false,bs:false,wt:null};if(V.v!=="listen")go("listen");else render()}
+function listenV(){var h=head("Dinle & Tekrarla",null,"go('pick',{m:'dinle'})");
+  h+='<div class="mu" style="margin:-4px 0 8px">'+esc(rlabel(P.L))+" · "+P.L.length+" ayet</div>";
+  h+='<div class="card"><div class="sw"><span>Kâri</span><select onchange="DB.set.rec=this.value;store();plRe()">'+RECS.map(function(r){return'<option value="'+r[0]+'"'+(r[0]===DB.set.rec?" selected":"")+">"+r[1]+"</option>"}).join("")+"</select></div>";
+  h+='<div class="sw"><span>Her ayeti tekrarla</span><select onchange="P.rep=+this.value">'+[1,2,3,5,7,10,20].map(function(n){return"<option"+(n===P.rep?" selected":"")+' value="'+n+'">'+n+" kez</option>"}).join("")+"</select></div>";
+  h+='<div class="sw"><span>Bütün bölümü</span><select onchange="P.loops=+this.value">'+[[1,"1 kez"],[2,"2 kez"],[3,"3 kez"],[5,"5 kez"],[0,"Sürekli"]].map(function(n){return"<option"+(n[0]===P.loops?" selected":"")+' value="'+n[0]+'">'+n[1]+"</option>"}).join("")+"</select></div>";
+  h+='<div class="sw"><span>Okuma hızı</span><select onchange="P.sp=+this.value;AU.playbackRate=P.sp">'+[.75,1,1.25,1.5].map(function(n){return"<option"+(n===P.sp?" selected":"")+' value="'+n+'">'+n+"x</option>"}).join("")+"</select></div>";
+  h+='<div class="sw"><span>🗣️ Ardından ben tekrar edeyim<br><small class="mu">Her ayetten sonra senin okuman için bekler</small></span><input type="checkbox" style="width:22px;height:22px" '+(P.gap?"checked":"")+' onchange="P.gap=this.checked?1:0"></div>';
+  h+='<div class="sw"><span>🙈 Metni gizle (dinleyerek ezber)</span><input type="checkbox" style="width:22px;height:22px" '+(P.hide?"checked":"")+' onchange="P.hide=this.checked?1:0;render()"></div></div>';
+  h+='<div class="pl"><button class="g" onclick="plMove(-1)">⏮</button><button class="pp" id="pp" onclick="plToggle()">▶</button><button class="g" onclick="plMove(1)">⏭</button></div><div class="wait" id="wait"></div>';
+  h+='<div class="card" id="ays">';P.L.forEach(function(ai,i){var a=A[ai];h+='<div class="ay" id="ay'+i+'" onclick="plGo('+i+')"><div class="mu" style="font-size:12px">'+sn(a[0])+" "+a[1]+'</div><div class="t'+(P.hide?" gz":"")+'">'+a[4]+' <span style="color:var(--gd)">﴿'+an(a[1])+"﴾</span></div>"+(DB.set.meal&&window.MEAL?'<div class="m">'+esc(MEAL[ai])+"</div>":"")+"</div>"});h+="</div>";
+  h+='<div class="mu c">Ses dosyaları everyayah.com\'dan çalınır; internet gerekir.</div>';
+  if(DB.set.meal&&!window.MEAL)loadMeal();
+  return h}
+function loadMeal(cb){if(window.MEAL||loadMeal.l){if(cb&&window.MEAL)cb();return}loadMeal.l=1;var s=document.createElement("script");s.src="meal.js";s.onload=function(){if(V.v==="listen")render();if(cb)cb()};document.body.appendChild(s)}
+function plPaint(){if(!P)return;document.querySelectorAll(".ay.on").forEach(function(e){e.classList.remove("on")});var e=$("#ay"+P.i);if(e)e.classList.add("on");var b=$("#pp");if(b)b.textContent=P.on?"⏸":"▶"}
+function plScroll(){var e=$("#ay"+P.i);if(e){var r=e.getBoundingClientRect();if(r.top<60||r.bottom>innerHeight-40)window.scrollTo({top:scrollY+r.top-120,behavior:"smooth"})}}
+function plPlay(){clearTimeout(P.wt);$("#wait")&&($("#wait").textContent="");var ai=P.L[P.i],a=A[ai];
+  P.bs=P.r===0&&a[1]===1&&a[0]!==1&&a[0]!==9&&!P.bsDone;AU.src=url(ai,P.bs);AU.playbackRate=P.sp;
+  var pr=AU.play();if(pr&&pr.catch)pr.catch(function(){P.on=false;plPaint();toast("Ses çalınamadı. İnternet bağlantını kontrol et.",3000)});P.on=true;plPaint();plScroll()}
+AU.onended=function(){if(!P||!P.on)return;if(P.bs){P.bsDone=1;plPlay();return}
+  var nx=function(){P.r++;if(P.r<P.rep){plPlay();return}P.r=0;P.bsDone=0;P.i++;if(P.i>=P.L.length){P.lp++;if(P.loops&&P.lp>=P.loops){P.on=false;P.i=0;P.lp=0;plPaint();toast("Dinleme bitti 🌿");logListen();return}P.i=0}plPlay()};
+  if(P.gap){var ms=Math.max(1500,(AU.duration||3)*1000*1.15/P.sp),end=Date.now()+ms,w=$("#wait");
+    (function tick(){if(!P.on)return;var k=Math.ceil((end-Date.now())/1000);if(w)w.textContent="🗣️ Şimdi sen tekrarla… "+k;if(Date.now()>=end){if(w)w.textContent="";nx()}else P.wt=setTimeout(tick,250)})()}
+  else nx()};
+AU.onerror=function(){if(P&&P.on){P.on=false;plPaint();toast("Ses yüklenemedi. İnternet bağlantını kontrol et.",3000)}};
+function plToggle(){if(P.on){P.on=false;AU.pause();clearTimeout(P.wt);plPaint();return}if(AU.src&&AU.currentTime>0&&!AU.ended&&AU.src.indexOf(DB.set.rec)>0){P.on=true;AU.play();plPaint()}else plPlay()}
+function plGo(i){P.i=i;P.r=0;P.bsDone=0;plPlay()}
+function plMove(d){plGo(Math.max(0,Math.min(P.L.length-1,P.i+d)))}
+function plRe(){if(P.on)plPlay()}
+function plStop(){if(P){P.on=false;clearTimeout(P.wt)}try{AU.pause()}catch(e){}}
+function logListen(){var dk=dkey(Date.now()),d=DB.days[dk]=DB.days[dk]||{ay:0,ss:0,sec:0};d.dn=(d.dn||0)+P.L.length;store()}
+/* ---------- sesle bul ---------- */
+var IDX=null;
+function buildIdx(){if(IDX)return;IDX={tok:[],inv:{}};A.forEach(function(a,i){var T=a[4].split(" ").map(nrm).filter(Boolean).map(function(n){return{n:n,k:skel(n)}});IDX.tok.push(T);var seen={};T.forEach(function(t){var key=t.k||t.n;if(seen[key])return;seen[key]=1;(IDX.inv[key]=IDX.inv[key]||[]).push(i)})})}
+function search(q){buildIdx();var Q=q.split(/\s+/).map(nrm).filter(Boolean).filter(function(n){return!GIRIS[n]||q.split(/\s+/).length<4});if(!Q.length)return[];
+  var cnt={};Q.forEach(function(n){var L=IDX.inv[skel(n)||n]||[];if(L.length>1500)return;L.forEach(function(i){cnt[i]=(cnt[i]||0)+1})});
+  var cand=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a]}).slice(0,80);
+  return cand.map(function(i){var T=IDX.tok[i],best=0;
+    for(var s=0;s<T.length;s++){var run=0,qi=0,ti=s,miss=0;while(qi<Q.length&&ti<T.length){if(sim(Q[qi],T[ti])>=.72){run++;qi++;ti++}else if(miss<2){miss++;qi++}else break}if(run>best)best=run}
+    return{i:+i,sc:best+cnt[i]*.1}}).filter(function(r){return r.sc>=Math.min(2,Q.length)}).sort(function(a,b){return b.sc-a.sc}).slice(0,6)}
+function searchV(){var h=head("Sesle Bul");
+  h+='<div class="card c"><div class="mu" style="margin-bottom:10px">Mikrofona dokun ve bir ayetten birkaç kelime oku. Hangi sure ve ayet olduğunu bulayım.</div><button class="mic'+(V.on?" on":"")+'" id="smic" onclick="sMic()">🎙️</button><div class="heard" style="text-align:center;margin-top:10px" id="sh">'+esc(V.q||"")+'</div>';
+  h+='<div class="row" style="margin-top:8px"><input type="text" id="sq" dir="rtl" placeholder="ya da Arapça yaz…" value="'+esc(V.q||"")+'" onkeydown="if(event.key===\'Enter\')sRun(this.value)"><button style="flex:none" onclick="sRun($(\'#sq\').value)">Ara</button></div></div>';
+  if(V.r){if(!V.r.length)h+='<div class="card mu c">Eşleşen ayet bulunamadı. Biraz daha uzun okumayı dene.</div>';
+    else{h+="<h2>Bulunanlar</h2><div class=\"card\">";V.r.forEach(function(r,k){var a=A[r.i];h+='<div class="res"><div class="row"><b>'+(k===0?"🎯 ":"")+sn(a[0])+" "+a[1]+'</b><span class="mu" style="text-align:right">'+a[2]+". cüz · s. "+a[3]+'</span></div><div class="t">'+a[4]+'</div><div class="btns"><button onclick="startRec(['+r.i+'],\'ses\')">🎙️ Ezberle</button><button class="g" onclick="go(\'pick\',{m:\'dinle\'});plStart(['+r.i+'])">🎧 Dinle</button><button class="g" onclick="go(\'pick\',{m:\'ses\',s:'+a[0]+',a1:'+a[1]+',a2:'+SU[a[0]-1][1]+'})">Buradan devam</button></div></div>'});h+="</div>"}}
+  return h}
+function sRun(q){q=(q||"").trim();if(!q)return;V.q=q;V.r=search(q);render()}
+function sMic(){if(Ses.on()){Ses.stop();return}if(!Ses.ok()){toast("Bu cihazda sesli tanıma yok. Arapça yazarak arayabilirsin.",3000);return}
+  var txt="";Ses.start(function(k,t){if(V.v!=="search"){Ses.stop();return}
+    if(k==="basladi"||k==="bitti"){V.on=Ses.on();var m=$("#smic");if(m)m.className="mic"+(V.on?" on":"");if(k==="bitti"&&txt)sRun(txt);return}
+    if(k==="hata"||k==="izin-yok"){toast(k==="izin-yok"?"Mikrofon izni gerekiyor.":"Ses tanıma hatası ("+t+")",3000);Ses.stop();return}
+    var e=$("#sh");if(e)e.textContent=t;if(k==="son"){txt=t;Ses.stop()}})}
+/* ---------- ilerleme ---------- */
+function progV(){var h=head("İlerlemem"),nk=0,tr=0,tot=0;for(var k in DB.ay){if(DB.ay[k].lv>=2)nk++;tr+=DB.ay[k].r}for(k in DB.days)tot+=DB.days[k].sec||0;
+  h+='<div class="card"><div class="st3"><div><b>🔥 '+streak()+'</b><small>gün seri</small></div><div><b>'+nk+'</b><small>ezber ayet</small></div><div><b>'+tr+'</b><small>dinletilen ayet</small></div><div><b>'+Math.round(tot/60)+'</b><small>dakika</small></div></div></div>';
+  h+='<h2>Son 16 hafta</h2><div class="card"><div class="hm">';var t0=today0(),wd=(new Date(t0).getDay()+6)%7,start=t0-(15*7+wd)*DAY;
+  for(var d=start;d<=t0+(6-wd)*DAY;d+=DAY){var x=DB.days[dkey(d)]||{},n=(x.ay||0)+(x.dn||0)/3,l=d>t0?"":n>=DB.set.goal?"l4":n>=DB.set.goal*.6?"l3":n>=DB.set.goal*.3?"l2":n>0?"l1":"";h+='<i class="'+l+'" '+(d>t0?'style="opacity:.25"':"")+"></i>"}
+  h+='</div><div class="mu" style="margin-top:6px">Altın kare: günlük hedef ('+DB.set.goal+' ayet) tamam.</div></div>';
+  h+='<h2>Cüz haritası</h2><div class="card"><div class="cmap">';var CZ=[];for(var c=1;c<=30;c++)CZ.push({n:0,k:0});A.forEach(function(a,i){CZ[a[2]-1].n++;if(known(i))CZ[a[2]-1].k++});
+  CZ.forEach(function(z,i){var p=z.k/z.n;h+='<div style="'+(p?"background:rgba(15,118,110,"+(.15+p*.85)+");color:"+(p>.5?"#fff":"var(--tx)"):"")+'">'+(i+1)+"<small style=\""+(p>.5?"color:#fff":"")+"\">%"+Math.round(p*100)+"</small></div>"});
+  h+='</div><div class="mu" style="margin-top:6px">Bir ayet en az iki kez %90 üstü okununca "ezber" sayılır.</div></div>';
+  var weak=Object.keys(DB.ay).filter(function(k){return DB.ay[k].ok<85}).sort(function(a,b){return DB.ay[a].ok-DB.ay[b].ok}).slice(0,12).map(Number);
+  if(weak.length){h+='<h2>Zayıf ayetler</h2><div class="card">';weak.forEach(function(i){var r=DB.ay[i];h+='<div class="el"><span><b>'+sn(A[i][0])+" "+A[i][1]+'</b><br><span class="mu">son %'+r.ok+" · "+r.h+' hata</span></span><button class="g" onclick="startRec(['+i+'],\'ses\')">Çalış</button></div>'});h+='<button class="gd" style="width:100%;margin-top:8px" onclick="startRec(['+weak.sort(function(a,b){return a-b}).join(",")+'],\'ses\')">Hepsini birden çalış</button></div>'}
+  if(DB.hist.length){h+="<h2>Son oturumlar</h2><div class=\"card\">";DB.hist.slice(0,15).forEach(function(x){var L=x.c?range(x.L[0],x.L[1]):x.L;h+='<div class="el"><span><b>'+esc(rlabel(L))+'</b><br><span class="mu">'+new Date(x.ts).toLocaleDateString("tr-TR",{day:"numeric",month:"short"})+" · "+(x.m==="kardes"?"🤝":"🎙️")+" · "+Math.ceil(x.dur/60)+' dk</span></span><b style="color:'+(x.sc>=85?"var(--ok)":"var(--er)")+'">%'+x.sc+"</b></div>"});h+="</div>"}
+  return h}
+/* ---------- hata defteri ---------- */
+function errsV(){var h=head("Hata Defteri");if(!DB.err.length)return h+'<div class="card mu c">Henüz hata yok. Ezber dinlettikçe yanlış okunan ve atlanan kelimeler burada birikir.</div>';
+  var by={};DB.err.forEach(function(e){(by[e.ai]=by[e.ai]||[]).push(e)});var ks=Object.keys(by).map(Number).sort(function(a,b){return by[b].length-by[a].length});
+  h+='<div class="mu" style="margin-bottom:8px">'+ks.length+" ayette "+DB.err.length+' hata. En çok hata yapılan ayetler üstte.</div><button class="gd" style="width:100%;margin-bottom:10px" onclick="startRec(['+ks.slice(0,40).sort(function(a,b){return a-b}).join(",")+'],\'ses\')">📕 Hatalı ayetleri çalış ('+Math.min(40,ks.length)+")</button>";
+  ks.slice(0,60).forEach(function(i){var E=by[i],ws={};E.forEach(function(e){ws[e.t]=(ws[e.t]||0)+1});
+    h+='<div class="card"><div class="row"><b>'+sn(A[i][0])+" "+A[i][1]+'</b><span class="mu" style="text-align:right">'+E.length+" hata</span></div><div style=\"direction:rtl;margin:6px 0\">"+Object.keys(ws).map(function(w){return'<span class="tg" style="font:400 20px var(--ar);color:var(--er)">'+w+(ws[w]>1?' <small style="font:700 11px system-ui">×'+ws[w]+"</small>":"")+"</span>"}).join("")+'</div><div class="btns"><button onclick="startRec(['+i+'],\'ses\')">🎙️ Çalış</button><button class="g" onclick="go(\'pick\',{m:\'dinle\'});plStart(['+i+'])">🎧 Dinle</button><button class="d" onclick="delErr('+i+')">Sil</button></div></div>'});
+  return h+'<button class="d" style="width:100%" onclick="if(V.cl){DB.err=[];store();render()}else{V.cl=1;this.textContent=\'Emin misin? Tekrar dokun\'}">Defteri temizle</button>'}
+function delErr(i){DB.err=DB.err.filter(function(e){return e.ai!==i});store();render()}
+/* ---------- ayarlar ---------- */
+function setV(){var s=DB.set,h=head("Ayarlar");
+  h+='<div class="card"><div class="sw"><span>Günlük hedef</span><select onchange="DB.set.goal=+this.value;store()">'+[3,5,10,15,20,30,50].map(function(n){return"<option"+(n===s.goal?" selected":"")+' value="'+n+'">'+n+" ayet</option>"}).join("")+"</select></div>";
+  h+='<div class="sw"><span>Tema</span><select onchange="DB.set.th=this.value;store();applyTheme()"><option value=""'+(s.th?"":" selected")+'>Telefona göre</option><option value="light"'+(s.th==="light"?" selected":"")+'>Açık</option><option value="dark"'+(s.th==="dark"?" selected":"")+">Koyu</option></select></div>";
+  h+='<div class="sw"><span>Arapça yazı boyu</span><span class="row" style="flex:none"><button class="g" onclick="fsz(-2);render()">A−</button><b style="flex:none;width:30px;text-align:center">'+s.fs+'</b><button class="g" onclick="fsz(2);render()">A+</button></span></div>';
+  h+='<div style="direction:rtl;font:400 '+s.fs+'px/2 var(--ar);text-align:center;padding:6px 0">'+A[0][4]+"</div>";
+  h+='<div class="sw"><span>Varsayılan gizleme</span><select onchange="DB.set.hide=this.value;store()"><option value="gizli"'+(s.hide==="gizli"?" selected":"")+'>Tam gizli</option><option value="harf"'+(s.hide==="harf"?" selected":"")+'>İlk harf</option><option value="silik"'+(s.hide==="silik"?" selected":"")+">Silik</option></select></div>";
+  h+='<div class="sw"><span>Sure başında besmele</span><input type="checkbox" style="width:22px;height:22px"'+(s.bs?" checked":"")+' onchange="DB.set.bs=this.checked?1:0;store()"></div>';
+  h+='<div class="sw"><span>Dinlerken Türkçe meal</span><input type="checkbox" style="width:22px;height:22px"'+(s.meal?" checked":"")+' onchange="DB.set.meal=this.checked?1:0;store()"></div>';
+  h+='<div class="sw"><span>Ses tanıma lehçesi</span><select onchange="DB.set.lang=this.value;store()">'+[["ar-SA","Arapça (Suudi)"],["ar-EG","Arapça (Mısır)"],["ar-AE","Arapça (BAE)"],["ar-JO","Arapça (Ürdün)"]].map(function(x){return'<option value="'+x[0]+'"'+(x[0]===s.lang?" selected":"")+">"+x[1]+"</option>"}).join("")+"</select></div></div>";
+  h+='<div class="card"><div class="mu">Kur\'an metni: Tanzil (Osmanlı hattı). Meal: Diyanet İşleri meali (Tanzil). Sesler: everyayah.com. Bütün ilerleme yalnızca bu telefonda saklanır.</div></div>';
+  h+='<button class="d" style="width:100%" onclick="if(V.rs){localStorage.removeItem(\'hk1\');location.reload()}else{V.rs=1;this.textContent=\'Bütün ilerleme silinecek. Emin misin?\'}">Tüm verileri sıfırla</button>';
+  return h}
+function helpV(){return head("Nasıl kullanılır")+'<div class="card"><b>🎙️ Ezber Dinlet</b><p class="mu">Sure, cüz ya da sayfa seç. Ayetler gizli gelir. Mikrofona dokun ve ezberden oku: doğru okuduğun kelimeler açılır, yanlışlar kırmızı, atladıkların turuncu olur. Takılırsan 💡 İpucu ile sıradaki kelimeyi gör. Tanıma bir kelimeyi kaçırırsa “✓ Doğru say”a bas. Açılmış bir kelimeye dokunarak doğru/hatalı olarak düzeltebilirsin.</p>'
+  +'<b>🤝 Kardeşime Dinlet</b><p class="mu">Hafızlıkta olduğu gibi: telefonu bir arkadaşın tutar, sen ezberden okursun. O, her kelimede ✓ Doğru ya da ✗ Hata’ya basar. İnternet ve mikrofon gerekmez.</p>'
+  +'<b>🔁 Tekrar takvimi</b><p class="mu">Her ayet okunduğunda puanlanır. İyi okuduğun ayetler 1, 3, 7, 14, 30, 60 gün arayla tekrar karşına çıkar; zorlandıkların ertesi gün gelir. Ana menüdeki “Bugünün tekrarı” bunları toplar.</p>'
+  +'<b>🎧 Dinle & Tekrarla</b><p class="mu">Bir kâri seç, her ayeti istediğin kadar tekrarlat. “Ardından ben tekrar edeyim” açıksa her ayetten sonra senin okuman için bekler.</p>'
+  +'<b>🔍 Sesle Bul</b><p class="mu">Bir ayetten birkaç kelime oku, uygulama hangi sure ve ayet olduğunu bulsun.</p>'
+  +'<b>İpucu</b><p class="mu">Sesli tanıma için Android’de Google uygulaması ve internet gerekir. Tane tane ve net okumak tanımayı iyileştirir; çok hızlı hadr okuyuşta kelime kaçabilir.</p></div>'}
+/* ---------- açılış ---------- */
+(function(){var sp=$("#splash");setTimeout(function(){sp.classList.add("off");setTimeout(function(){sp.remove()},500)},1300)})();
+document.addEventListener("visibilitychange",function(){if(document.hidden&&Ses.on())Ses.stop()});
+render();
+</script></body></html>
