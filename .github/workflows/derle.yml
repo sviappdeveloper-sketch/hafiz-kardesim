@@ -1,4 +1,5 @@
 name: Derle (Android)
+# (Depo açık: GitHub Actions dakikaları sınırsız.)
 
 # main'e her gönderimde (kod değiştiyse) ya da elle başlatılınca APK + AAB derler, "apk" dalına koyar.
 # Hata olursa ayrıntılar "log" dalına yazılır.
