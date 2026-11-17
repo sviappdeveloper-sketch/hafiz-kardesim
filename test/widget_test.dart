@@ -1,0 +1,68 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hafiz_kardesim/hafiz/arapca.dart';
+
+List<Kelime> _w(List<String> ayetler) =>
+    kelimeler(List.generate(ayetler.length, (i) => i), (i) => ayetler[i], (i) => i + 1);
+
+String _durum(List<Kelime> w) => w.map((k) => '.OEKH'[k.st]).join();
+
+void main() {
+  test('Normalleştirme: Osmanlı hattı ile imlâ aynı sayılır', () {
+    expect(nrm('ٱلرَّحْمَٰنِ'), 'الرحمن');
+    expect(nrm('ٱلصَّلَوٰةَ'), 'الصلوه');
+    expect(sim('الصلاه', Kelime(li: 0, ai: 0, t: 'ٱلصَّلَوٰةَ', n: nrm('ٱلصَّلَوٰةَ'))) >= .7, isTrue);
+  });
+
+  test('Fâtiha doğru okununca bütün kelimeler doğru', () {
+    final w = _w([
+      'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+      'ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ',
+      'ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+      'مَٰلِكِ يَوْمِ ٱلدِّينِ',
+    ]);
+    final e = Eslestirici(w);
+    for (final k in 'اعوذ بالله من الشيطان الرجيم بسم الله الرحمن الرحيم الحمد لله رب العالمين الرحمن الرحيم مالك يوم الدين'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w), 'O' * w.length);
+    expect(e.bitti, isTrue);
+  });
+
+  test('Atlanan ve yanlış kelime işaretlenir', () {
+    final w = _w(['مَٰلِكِ يَوْمِ ٱلدِّينِ', 'إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ', 'ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ']);
+    final e = Eslestirici(w);
+    for (final k in 'مالك الدين اياك نعبد واياك نستغفر اهدنا الصراط المستقيم'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w), 'OKOOOOEOOO');
+    expect(w[1].st, KD.atla);
+    expect(w[6].st, KD.hata);
+  });
+
+  test('Hurûf-u mukattaa harf adlarıyla okunur', () {
+    final w = _w(['الٓمٓ', 'ذَٰلِكَ ٱلْكِتَٰبُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًۭى لِّلْمُتَّقِينَ']);
+    final e = Eslestirici(w);
+    for (final k in 'الف لام ميم ذلك الكتاب لا ريب فيه هدى للمتقين'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w), 'O' * w.length);
+  });
+
+  test('يا + ايها tek kelimeye eşleşir', () {
+    final w = _w(['يَٰٓأَيُّهَا ٱلنَّاسُ ٱعْبُدُوا۟ رَبَّكُمُ']);
+    final e = Eslestirici(w);
+    for (final k in 'يا ايها الناس اعبدوا ربكم'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w), 'OOOO');
+  });
+
+  test('Puan: ipucu yarım sayılır', () {
+    final w = _w(['قُلْ هُوَ ٱللَّهُ أَحَدٌ']);
+    w[0].st = KD.dogru;
+    w[1].st = KD.dogru;
+    w[2].st = KD.ipucu;
+    w[3].st = KD.hata;
+    expect(puan(w), 63);
+  });
+}

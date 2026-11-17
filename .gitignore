@@ -5,3 +5,8 @@ android/.gradle/
 android/build/
 android/app/build/
 android/local.properties
+.dart_tool/
+build/
+.flutter-plugins*
+*.iml
+.idea/

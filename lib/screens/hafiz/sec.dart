@@ -1,0 +1,259 @@
+import 'package:flutter/material.dart';
+
+import '../../hafiz/kayit.dart';
+import '../../hafiz/kuran.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/ornaments.dart';
+import 'ortak.dart';
+
+/// Ezberlenecek / dinlenecek bölümü seçme: sure (ayet aralığı), cüz ya da sayfa.
+class SecEkrani extends StatefulWidget {
+  const SecEkrani({super.key, required this.baslik, required this.onSec, this.gizlemeSor = true, this.dugme = 'Başla'});
+  final String baslik;
+  final bool gizlemeSor;
+  final String dugme;
+  final void Function(BuildContext context, List<int> ayetler) onSec;
+
+  @override
+  State<SecEkrani> createState() => _SecEkraniState();
+}
+
+class _SecEkraniState extends State<SecEkrani> {
+  int _sekme = 0;
+  String _ara = '';
+  int? _s;
+  int _a1 = 1, _a2 = 1;
+  int? _cuz;
+  int _p1 = 1, _p2 = 1;
+
+  void _sure(int s) => setState(() {
+        _s = s;
+        _a1 = 1;
+        _a2 = Kuran.ayetSayisi(s);
+      });
+
+  void _git(List<int> l) {
+    if (l.isEmpty) return;
+    widget.onSec(context, l);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.baslik)),
+      body: PatternBackground(
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('Sure')),
+                ButtonSegment(value: 1, label: Text('Cüz')),
+                ButtonSegment(value: 2, label: Text('Sayfa')),
+              ],
+              selected: {_sekme},
+              showSelectedIcon: false,
+              onSelectionChanged: (s) => setState(() => _sekme = s.first),
+            ),
+          ),
+          Expanded(child: [_sureSekme, _cuzSekme, _sayfaSekme][_sekme]()),
+        ]),
+      ),
+    );
+  }
+
+  Widget _baslaKarti(String baslik, String alt, List<int> l, {Widget? ust}) => OrnateCard(
+        highlight: true,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(baslik, style: AppText.display(20)),
+          Text(alt, style: AppText.body(13, color: AppColors.muted)),
+          if (ust != null) ...[const SizedBox(height: 10), ust],
+          if (widget.gizlemeSor) ...[
+            const SizedBox(height: 12),
+            Text('AYETLER NASIL GİZLENSİN?', style: AppText.label()),
+            const SizedBox(height: 6),
+            const GizlemeSecici(),
+          ],
+          const SizedBox(height: 12),
+          GoldButton(label: widget.dugme, icon: Icons.play_arrow_rounded, onPressed: l.isEmpty ? null : () => _git(l)),
+        ]),
+      );
+
+  Widget _sureSekme() {
+    final q = trSade(_ara);
+    final k = Kayit.i;
+    return ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 30), children: [
+      if (_s != null) ...[
+        _baslaKarti(
+          '${_s!}. ${Kuran.ad(_s!)}',
+          '${Kuran.ayetSayisi(_s!)} ayet · %${(k.sureOrani(_s!) * 100).round()} ezber',
+          Kuran.aralik(Kuran.ix(_s!, _a1), Kuran.ix(_s!, _a2)),
+          ust: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Expanded(child: _ayetSec(_a1, (v) => setState(() => _a1 = v))),
+              const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('–')),
+              Expanded(child: _ayetSec(_a2, (v) => setState(() => _a2 = v))),
+            ]),
+            const SizedBox(height: 8),
+            Wrap(spacing: 6, children: [
+              ActionChip(label: const Text('Tamamı'), onPressed: () => setState(() {
+                    _a1 = 1;
+                    _a2 = Kuran.ayetSayisi(_s!);
+                  })),
+              for (final n in [3, 5, 10])
+                if (Kuran.ayetSayisi(_s!) > n)
+                  ActionChip(label: Text('$n ayet'), onPressed: () => setState(() => _a2 = (_a1 + n - 1).clamp(1, Kuran.ayetSayisi(_s!)))),
+            ]),
+          ]),
+        ),
+        const SizedBox(height: 12),
+      ],
+      TextField(
+        decoration: const InputDecoration(hintText: 'Sure ara (ör. yasin, mülk, 36)', prefixIcon: Icon(Icons.search)),
+        onChanged: (v) => setState(() => _ara = v),
+      ),
+      const SizedBox(height: 8),
+      Wrap(spacing: 6, runSpacing: 4, children: [
+        for (final x in const [(1, 'Fâtiha'), (36, 'Yâsîn'), (67, 'Mülk'), (18, 'Kehf'), (55, 'Rahmân'), (78, "Nebe'")])
+          ActionChip(label: Text(x.$2), onPressed: () => _sure(x.$1)),
+        ActionChip(label: const Text('Âyete\'l-Kürsî'), onPressed: () => _git([Kuran.ix(2, 255)])),
+        ActionChip(label: const Text('Âmenerrasûlü'), onPressed: () => _git(Kuran.aralik(Kuran.ix(2, 285), Kuran.ix(2, 286)))),
+      ]),
+      const SizedBox(height: 8),
+      for (var s = 1; s <= 114; s++)
+        if (q.isEmpty || trSade(Kuran.ad(s)).contains(q) || '$s' == q) _sureSatir(s),
+    ]);
+  }
+
+  Widget _ayetSec(int v, ValueChanged<int> f) {
+    final n = Kuran.ayetSayisi(_s!);
+    return DropdownButtonFormField<int>(
+      key: ValueKey('$_s-$v'),
+      initialValue: v.clamp(1, n),
+      isExpanded: true,
+      decoration: const InputDecoration(isDense: true),
+      items: [for (var i = 1; i <= n; i++) DropdownMenuItem(value: i, child: Text('$i. ayet'))],
+      onChanged: (x) {
+        if (x == null) return;
+        f(x);
+        if (_a2 < _a1) setState(() => _a2 = _a1);
+      },
+    );
+  }
+
+  Widget _sureSatir(int s) {
+    final p = Kayit.i.sureOrani(s);
+    return InkWell(
+      onTap: () => _sure(s),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: _s == s ? AppColors.gold.withValues(alpha: .12) : null,
+          borderRadius: BorderRadius.circular(12),
+          border: Border(bottom: BorderSide(color: AppColors.inkLine)),
+        ),
+        child: Row(children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.gold.withValues(alpha: .5))),
+            child: Text('$s', style: AppText.number(13, color: AppColors.goldLight)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(Kuran.ad(s), style: AppText.body(15, weight: FontWeight.w700)),
+              Text('${Kuran.ayetSayisi(s)} ayet${p > 0 ? ' · %${(p * 100).round()} ezber' : ''}',
+                  style: AppText.body(12, color: AppColors.muted)),
+              if (p > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, right: 30),
+                  child: LinearProgressIndicator(value: p, minHeight: 4, color: AppColors.gold, backgroundColor: AppColors.inkLine),
+                ),
+            ]),
+          ),
+          Text(Kuran.arapAd(s), style: arapYazi(20, color: AppColors.gold)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _cuzSekme() {
+    final k = Kayit.i;
+    return ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 30), children: [
+      if (_cuz != null) ...[
+        _baslaKarti('$_cuz. cüz', '${Kuran.etiketListe([Kuran.cuz(_cuz!).first])} → ${Kuran.etiketListe([Kuran.cuz(_cuz!).last])}',
+            Kuran.cuz(_cuz!)),
+        const SizedBox(height: 12),
+      ],
+      Text('Altındaki çizgi o cüzdeki ezber oranını gösterir.', style: AppText.body(13, color: AppColors.muted)),
+      const SizedBox(height: 8),
+      GridView.count(
+        crossAxisCount: 5,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        children: [
+          for (var c = 1; c <= 30; c++)
+            Builder(builder: (_) {
+              final l = Kuran.cuz(c);
+              final p = l.where(k.ezber).length / l.length;
+              return InkWell(
+                onTap: () => setState(() => _cuz = c),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _cuz == c ? AppColors.gold.withValues(alpha: .25) : AppColors.inkDeep.withValues(alpha: .45),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.inkLine),
+                  ),
+                  child: Stack(children: [
+                    Center(child: Text('$c', style: AppText.number(18))),
+                    Positioned(
+                        left: 0, right: 0, bottom: 0,
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: p,
+                          child: Container(height: 4, color: AppColors.gold),
+                        )),
+                  ]),
+                ),
+              );
+            }),
+        ],
+      ),
+    ]);
+  }
+
+  Widget _sayfaSekme() {
+    final l = _p2 >= _p1 ? Kuran.sayfalar(_p1, _p2) : <int>[];
+    return ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 30), children: [
+      Text('Medine mushafı sayfa numarası (1–604). Hafızlar genelde sayfa sayfa ezberler.',
+          style: AppText.body(13, color: AppColors.muted)),
+      const SizedBox(height: 12),
+      _baslaKarti(
+        _p1 == _p2 ? '$_p1. sayfa' : '$_p1–$_p2. sayfalar',
+        l.isEmpty ? 'Geçersiz aralık' : '${l.length} ayet · ${Kuran.etiketListe(l)}',
+        l,
+        ust: Row(children: [
+          Expanded(child: _sayfaAlan(_p1, (v) => setState(() {
+                _p1 = v;
+                if (_p2 < v) _p2 = v;
+              }))),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('–')),
+          Expanded(child: _sayfaAlan(_p2, (v) => setState(() => _p2 = v < _p1 ? _p1 : v))),
+        ]),
+      ),
+    ]);
+  }
+
+  Widget _sayfaAlan(int v, ValueChanged<int> f) => Row(children: [
+        IconButton(onPressed: v > 1 ? () => f(v - 1) : null, icon: const Icon(Icons.remove_circle_outline)),
+        Expanded(child: Text('$v', textAlign: TextAlign.center, style: AppText.number(20))),
+        IconButton(onPressed: v < 604 ? () => f(v + 1) : null, icon: const Icon(Icons.add_circle_outline)),
+      ]);
+}

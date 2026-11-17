@@ -1,0 +1,96 @@
+name: Derle (Android)
+
+# main'e her gönderimde (kod değiştiyse) ya da elle başlatılınca APK + AAB derler, "apk" dalına koyar.
+# Hata olursa ayrıntılar "log" dalına yazılır.
+on:
+  push:
+    branches: [main]
+    paths: ['lib/**', 'test/**', 'assets/**', 'tool/**', 'pubspec.yaml', '.github/workflows/derle.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Disk alanı aç
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift /usr/local/lib/node_modules /opt/microsoft /opt/google/chrome /usr/local/share/chromium || true
+          sudo docker image prune -af >/dev/null 2>&1 || true
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Platform dosyalarını oluştur
+        run: flutter create --org com.sviapp --project-name hafiz_kardesim --platforms android,ios . 2>&1 | tail -5
+
+      - name: Paketler
+        run: flutter pub get 2>&1 | tee /tmp/pub.txt
+
+      - name: Android'i yayına hazırla (ad, izinler, simge)
+        run: |
+          python3 tool/ci_android.py > /tmp/ci.txt 2>&1 || { cat /tmp/ci.txt; exit 1; }
+          dart run flutter_launcher_icons 2>&1 | tail -3
+
+      - name: Kod denetimi
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/analyze.txt 2>&1 || {
+            grep -E "^ *error" /tmp/analyze.txt | head -30 | while IFS= read -r l; do echo "::error title=analyze::$l"; done
+            exit 1
+          }
+
+      - name: Testler
+        run: flutter test 2>&1 | tee /tmp/test.txt; test ${PIPESTATUS[0]} -eq 0
+
+      - name: APK
+        run: |
+          set -o pipefail
+          W=android/gradle/wrapper/gradle-wrapper.properties
+          sed -i -E 's#^distributionUrl=.*/(gradle-[0-9.]+-(all|bin)\.zip)#distributionUrl=https\\://services.gradle.org/distributions/\1#' $W
+          flutter build apk --release --split-per-abi --build-number=${{ github.run_number }} 2>&1 | tee /tmp/apk.txt
+
+      - name: AAB (Play Store)
+        run: |
+          set -o pipefail
+          flutter build appbundle --release --build-number=${{ github.run_number }} 2>&1 | tee /tmp/aab.txt
+
+      - name: Dosyaları 'apk' dalına koy
+        run: |
+          mkdir -p /tmp/cikti
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk /tmp/cikti/HafizKardesim.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk /tmp/cikti/HafizKardesim-armv7.apk || true
+          cp build/app/outputs/bundle/release/app-release.aab /tmp/cikti/HafizKardesim.aab || true
+          (cd android && ./gradlew -q signingReport 2>/dev/null | grep -E "Variant|SHA1|SHA-256" | head -12) > /tmp/cikti/IMZA.txt || true
+          cd /tmp/cikti
+          echo "surum: $(grep '^version:' $GITHUB_WORKSPACE/pubspec.yaml) derleme: ${{ github.run_number }} commit: ${GITHUB_SHA::7}" > SURUM.txt
+          git init -q -b apk
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add .
+          git commit -q -m "Derleme ${{ github.run_number }} (${GITHUB_SHA::7})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" apk
+
+      - name: Hata ayrıntılarını 'log' dalına yaz
+        if: failure()
+        run: |
+          mkdir -p /tmp/log && cp /tmp/*.txt /tmp/log/ 2>/dev/null || true
+          cd /tmp/log
+          echo "derleme ${{ github.run_number }} commit ${GITHUB_SHA::7}" > OZET.txt
+          git init -q -b log
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add .
+          git commit -q -m "Hata kaydı ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" log
