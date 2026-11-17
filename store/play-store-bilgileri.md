@@ -17,7 +17,7 @@
 **Görseller (store/ klasöründe):**
 - Uygulama simgesi 512×512: `play-icon-512.png`
 - Öne çıkan görsel 1024×500: `play-one-cikan-1024x500.png`
-- Telefon ekran görüntüleri (1080×2340): `play-ekran/1.png` … `6.png`
+- Telefon ekran görüntüleri (1080×2160): `play-ekran/1.png` … `6.png`
 
 ## Uygulama içeriği formları — önerilen yanıtlar
 
