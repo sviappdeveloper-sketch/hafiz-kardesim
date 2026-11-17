@@ -5,7 +5,7 @@ name: Derle (Android)
 on:
   push:
     branches: [main]
-    paths: ['lib/**', 'test/**', 'assets/**', 'tool/**', 'pubspec.yaml', '.github/workflows/derle.yml']
+    paths: ['lib/**', 'test/**', 'assets/**', 'tool/**', 'android-keys/**', 'pubspec.yaml', '.github/workflows/derle.yml']
   workflow_dispatch:
 
 permissions:
