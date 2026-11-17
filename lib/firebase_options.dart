@@ -34,7 +34,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: _senderId,
     projectId: _projectId,
     storageBucket: _bucket,
-    iosBundleId: 'com.hatimkardesim.hatimKardesim',
+    iosBundleId: 'com.sviapp.hafizKardesim',
   );
 
   static const FirebaseOptions web = FirebaseOptions(

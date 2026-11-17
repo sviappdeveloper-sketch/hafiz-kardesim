@@ -1,0 +1,26 @@
+name: Mağaza ekran görüntüleri
+# store/ekran/ değişince ekran görüntülerini gerçek yazı tipleriyle çizer ve "ekran" dalına koyar.
+on:
+  push:
+    branches: [main]
+    paths: ['store/ekran/**', 'tool/ekran.mjs', '.github/workflows/ekran.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  ekran:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: |
+          npm i --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium
+          node tool/ekran.mjs
+      - run: |
+          cd out
+          git init -q -b ekran
+          git config user.name ci; git config user.email ci@users.noreply.github.com
+          git add . && git commit -qm "ekran $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ekran

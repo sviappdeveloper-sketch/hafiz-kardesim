@@ -1,0 +1,35 @@
+{
+  "_aciklama": "tool/asc_islem.py bu dosyayı okuyup App Store Connect'e yazar.",
+  "locale": "tr",
+  "name": "Hafız Kardeşim",
+  "subtitle": "Kur'an ezberini dinlet",
+  "promotionalText": "Ayetler gizli, sen ezberden oku: uygulama dinler, doğruyu açar, hatanı gösterir. Kardeşine ya da hocana canlı dinlet, tekrar takvimiyle unutma. Ücretsiz, reklamsız.",
+  "keywords": "hafız,hafızlık,ezber,hıfz,kuran,dinletme,tekrar,sure,ayet,cüz,hoca,tecvid,mushaf,kâri,meal",
+  "description": "Kur'an ezberini dinlet, hatanı anında gör, unutmadan tekrar et.\n\nHafız Kardeşim, hafızlık yapanlar ve sure ezberleyenler için hazırlandı. Ayetler gizli gelir; sen ezberden okursun, uygulama seni dinler. Doğru okuduğun kelimeler açılır, hatalı okuduğun kırmızı, atladığın turuncu işaretlenir.\n\nEZBER DİNLET\n• Sure (istediğin ayet aralığı), cüz ya da Medine mushafı sayfasına göre seç.\n• Ayetleri tamamen gizle, yalnızca ilk harfini göster ya da silik göster.\n• Takıldığında ipucu al, ayeti aç; gerekirse bir kelimeyi elle doğru say ya da geri al.\n• Her dersin sonunda puanın, hatalı ve atlanan kelimeler tek tek.\n\nKARDEŞİNE DİNLET\nHafızlıktaki gibi: telefonu yanındaki arkadaşın tutar, sen okursun; o her kelimede Doğru ya da Hata'ya basar. Mikrofon ve internet gerekmez.\n\nHOCANA DİNLET\n• Hocanı ya da öğrencini arkadaş listenden veya 6 haneli kodla ekle; karşı tarafa \"Hoca olarak kabul ediyor musun?\" diye sorulur.\n• Canlı derste öğrenci kendi telefonunda gizli ayetlerle okur, hoca kendi telefonunda metni açık görür ve işaretler. İşaretler iki telefona anında gider.\n• Hoca ödev verir, not yazar; her ders iki tarafın ders geçmişine kaydedilir.\n\nTEKRAR TAKVİMİ\nİyi okuduğun ayetler 1, 3, 7, 14, 30 ve 60 gün arayla yeniden karşına çıkar, zorlandıkların ertesi gün. Ana sayfadaki \"Bugünün tekrarı\" hepsini toplar.\n\nDİNLE VE TEKRARLA\nSekiz kâriden birini seç (öğretici Husarî dahil). Her ayeti istediğin kadar tekrarlat, bölümü döngüye al, hızı ayarla. \"Ardından ben tekrar edeyim\" açıkken her ayetten sonra senin okuman için bekler. Metni gizleyerek dinleyip ezberleyebilir, Diyanet mealini açabilirsin.\n\nSESLE BUL\nBir ayetten birkaç kelime oku; hangi sure ve ayet olduğunu bulsun, oradan ezbere ya da dinlemeye devam et.\n\nİLERLEMEN\nGünlük hedef, gün serisi, 16 haftalık çalışma takvimi, cüz cüz ezber haritası, zayıf ayetler, hata defteri ve tarih tarih bütün ders geçmişin.\n\nAYRICA\nNamaz vakitleri ve ezan bildirimi, kıble pusulası, açık ve koyu tema.\n\nDers geçmişin yalnızca telefonunda ve kendi Google Drive / iCloud yedeğinde durur. Uygulama ücretsizdir, reklam yoktur. Hatim Kardeşim üyeliğinle de giriş yapabilirsin.\n\nSesli tanıma telefonun konuşma tanıma hizmetini kullanır ve internet gerektirir; tane tane ve net okumak sonucu iyileştirir.",
+  "supportUrl": "https://sviappdeveloper-sketch.github.io/hafiz-kardesim/destek.html",
+  "marketingUrl": "https://sviappdeveloper-sketch.github.io/hafiz-kardesim/",
+  "privacyPolicyUrl": "https://sviappdeveloper-sketch.github.io/hafiz-kardesim/gizlilik.html",
+  "copyright": "2026 Seyfullah Sivi",
+  "primaryCategory": "EDUCATION",
+  "secondaryCategory": "REFERENCE",
+  "contentRights": "USES_THIRD_PARTY_CONTENT",
+  "review": {
+    "contactFirstName": "Seyfullah",
+    "contactLastName": "Sivi",
+    "contactEmail": "sviapp.developer@gmail.com",
+    "contactPhone": "",
+    "demoAccountRequired": false,
+    "notes": "Hafiz Kardesim helps people memorize the Quran (hifz). Verses are hidden; the user recites from memory and the app listens with the device's speech recognition (Apple Speech framework, Arabic), reveals correctly recited words and marks wrong/skipped words. Microphone and speech recognition are used only while the user taps the microphone button in a recitation session; audio is not recorded or stored by the app.\n\nAccount: sign up instantly in the app with any e-mail address or with Sign in with Apple (free, no verification needed to try). The account is shared with our other app 'Hatim Kardesim' (same Firebase project). Account deletion: More (Daha fazla) > Profilim > Hesabımı sil.\n\nHow to test:\n1) Home > 'Ezber Dinlet' > pick a surah (e.g. Fatiha or Ihlas) > Başla > tap the microphone and recite in Arabic. Without reciting you can use 'İpucu' (hint) and 'Doğru say' (count as correct) buttons; 'Bitir' shows the result.\n2) 'Kardeşime Dinlet': a friend marks each word with Doğru/Hata; no microphone needed.\n3) 'Hoca – Öğrenci' tab: teacher/student linking needs two accounts (add by 6-digit code, the other side accepts), then a live session where marks sync between two phones via Cloud Firestore.\n4) 'Dinle & Tekrarla' plays verse audio from everyayah.com; 'Sesle Bul' finds a verse from recited words.\n\nNo ads, no in-app purchases, no tracking. Learning history is stored only on the device (and optionally in the user's own Google Drive app folder on Android). Quran text: Tanzil (CC BY-ND), translation: Diyanet (via Tanzil), audio: everyayah.com."
+  },
+  "screenshots": {
+    "APP_IPHONE_67": [
+      "app-store/ekran-goruntuleri/1.png",
+      "app-store/ekran-goruntuleri/2.png",
+      "app-store/ekran-goruntuleri/3.png",
+      "app-store/ekran-goruntuleri/4.png",
+      "app-store/ekran-goruntuleri/5.png",
+      "app-store/ekran-goruntuleri/6.png"
+    ]
+  },
+  "whatsNew": ""
+}

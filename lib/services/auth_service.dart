@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:google_sign_in/google_sign_in.dart';
@@ -240,6 +243,22 @@ class AuthService {
       });
       await batch.commit();
     }
+
+    // Hafız Kardeşim: hoca–öğrenci bağları ve canlı ders belgeleri.
+    for (final kol in ['hafizBag', 'hafizCanli']) {
+      try {
+        final q = await _db.collection(kol).where('uyeler', arrayContains: uid).get();
+        for (final d in q.docs) {
+          await d.reference.delete();
+        }
+      } catch (_) {}
+    }
+    // Bu telefondaki ders geçmişi dosyası.
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final f = File('${dir.path}/hafiz_$uid.json');
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
 
     // Arkadaşlık kayıtları.
     final reqs = await _db.collection('friendRequests').where('members', arrayContains: uid).get();

@@ -46,6 +46,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ? lt('Onaylamak için bir sonraki adımda Google hesabınızı seçin. Bu işlem geri alınamaz.')
                   : lt('Onaylamak için şifrenizi yazın. Bu işlem geri alınamaz.'),
               style: AppText.body(14)),
+          const SizedBox(height: 10),
+          Text(
+              'Hafız Kardeşim ve Hatim Kardeşim aynı üyeliği kullanır: hesabınız iki uygulamadan da silinir. '
+              'Hoca–öğrenci bağlarınız ve bu telefondaki ders geçmişiniz de silinir.',
+              style: AppText.body(13, color: AppColors.danger)),
           if (!AuthService.isGoogleUser && !AuthService.isAppleUser) ...[
             const SizedBox(height: 12),
             PasswordField(key: const Key('delete_pass'), controller: pass),
