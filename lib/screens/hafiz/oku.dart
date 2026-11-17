@@ -178,7 +178,9 @@ class _OkuEkraniState extends State<OkuEkrani> {
 
   void _bitir() {
     if (_bitti || !mounted) return;
-    Ses.durdur();
+    Ses.durdur(); // bekleyen son kelime de işlenir
+    // %10 lafız toleransı: son ayet büyük ölçüde doğru okunduysa kalanı doğru sayılır.
+    _e.bitisToleransi();
     if (!_w.any((k) => k.st != KD.gizli)) {
       Navigator.pop(context);
       return;

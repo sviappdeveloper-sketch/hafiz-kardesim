@@ -506,7 +506,7 @@ class _ThemeCard extends StatelessWidget {
             Expanded(child: Text(lt(p.name), style: AppText.body(15, color: p.ivory, weight: FontWeight.w700))),
             if (selected) Icon(Icons.check_circle, size: 20, color: p.gold),
           ]),
-          Text(p.light ? lt('Açık · ham parşömen') : lt('Koyu · zümrüt yeşili'),
+          Text(lt(p.aciklama),
               style: AppText.body(11.5, color: p.muted)),
         ]),
       ),

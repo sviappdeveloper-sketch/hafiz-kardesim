@@ -117,8 +117,34 @@ class Eslestirici {
 
   bool get bitti => cur >= w.length;
 
-  /// Değişen kelimelerin dizinleri döner.
+  /// Duyulan kelimeyi işler; değişen kelimelerin dizinleri döner.
+  /// Bir ayetin sonu geçilince o ayete %10 lafız toleransı uygulanır.
   List<int> besle(String raw) {
+    final once = cur;
+    final d = _besle(raw);
+    for (var i = once; i < cur && i < w.length; i++) {
+      if (w[i].end) d.addAll(lafizToleransi(w, w[i].li));
+    }
+    return d;
+  }
+
+  /// Okuma bitince (Bitir ya da son kelime): başlanmış her ayete toleransı uygular.
+  /// Son ayette duyulmadan kalan kelimeler de tolerans içindeyse doğru sayılır.
+  List<int> bitisToleransi() {
+    final d = <int>[];
+    final lis = <int>{for (final k in w) if (k.st != KD.gizli) k.li};
+    for (final li in lis) {
+      d.addAll(lafizToleransi(w, li));
+    }
+    if (d.isNotEmpty) {
+      while (cur < w.length && w[cur].st != KD.gizli) {
+        cur++;
+      }
+    }
+    return d;
+  }
+
+  List<int> _besle(String raw) {
     final degisen = <int>[];
     if (bitti) return degisen;
     final h = nrm(raw);
@@ -153,8 +179,10 @@ class Eslestirici {
       }
     }
     final aday = [h, if (_buf.isNotEmpty) _buf + h];
+    // Son kelimede ses tanıma çoğu zaman kelimeyi yarım ya da vakıfla duyar: biraz daha hoşgörülü ol.
+    final sonKelime = c == w.length - 1;
     for (final a in aday) {
-      if (sim(a, x) >= .7) {
+      if (sim(a, x) >= (sonKelime ? .6 : .7) || (sonKelime && a.length >= 2 && x.n.startsWith(a) && a.length * 10 >= x.n.length * 6)) {
         if (x.st == KD.gizli) isaret(c, KD.dogru, raw);
         _buf = '';
         _miss = 0;
@@ -211,6 +239,41 @@ class Eslestirici {
     _miss = 0;
     _lh = '';
   }
+}
+
+/// Lafız toleransı oranı: ayetin harflerinin %10'una kadar hata, ayeti doğru saydırır.
+const lafizTolerans = .10;
+
+/// [li] sıradaki ayette hatalı / atlanan / duyulmayan harfler ayet harflerinin %10'unu
+/// geçmiyorsa bu kelimeleri doğru sayar. İpucu alınan kelimeler olduğu gibi kalır.
+/// Değişen dizinler döner.
+List<int> lafizToleransi(List<Kelime> w, int li, {double oran = lafizTolerans}) {
+  final ayet = [for (var i = 0; i < w.length; i++) if (w[i].li == li) i];
+  if (ayet.isEmpty) return const [];
+  var toplam = 0, yanlis = 0;
+  final duzelecek = <int>[];
+  for (final i in ayet) {
+    final k = w[i];
+    toplam += k.n.length;
+    if (k.st == KD.dogru || k.st == KD.ipucu) continue;
+    duzelecek.add(i);
+    if (k.st == KD.hata && k.h.isNotEmpty) {
+      // duyulana göre kaç harf yanlış
+      var en = k.n.length;
+      for (final p in k.h.split(' ')) {
+        final hn = nrm(p);
+        if (hn.isNotEmpty) en = math.min(en, lev(hn, k.n));
+      }
+      yanlis += en;
+    } else {
+      yanlis += k.n.length;
+    }
+  }
+  if (duzelecek.isEmpty || toplam == 0 || yanlis > toplam * oran) return const [];
+  for (final i in duzelecek) {
+    w[i].st = KD.dogru;
+  }
+  return duzelecek;
 }
 
 /// Puan (0–100): ipucu yarım sayılır, gizli kalanlar sayılmaz.

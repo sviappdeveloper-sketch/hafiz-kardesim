@@ -184,7 +184,7 @@ class _MihrabPainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF1A4A3F), AppColors.inkSoft, AppColors.inkDeep],
+          colors: [AppColors.palette.id == 'gece' ? const Color(0xFF15386E) : const Color(0xFF1A4A3F), AppColors.inkSoft, AppColors.inkDeep],
         ).createShader(Offset.zero & size),
     );
     canvas.drawPath(

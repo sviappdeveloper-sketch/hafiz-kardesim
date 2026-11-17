@@ -514,7 +514,7 @@ class _ArrowCompassPainter extends CustomPainter {
           ..color = goldLight.withValues(alpha: 0.22 + 0.4 * glow));
 
     // Kadran yüzü
-    final face = Color.lerp(ink, const Color(0xFF1B6B4A), 0.55)!;
+    final face = Color.lerp(ink, AppColors.palette.id == 'gece' ? const Color(0xFF1B4C8A) : const Color(0xFF1B6B4A), 0.55)!;
     canvas.drawCircle(
         c,
         R,

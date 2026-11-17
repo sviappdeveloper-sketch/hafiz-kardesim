@@ -13,7 +13,7 @@ class SettingsService {
   static late SharedPreferences _p;
 
   /// Tema değişince uygulama yeniden çizilir.
-  static final themeId = ValueNotifier<String>(AppPalette.emerald.id);
+  static final themeId = ValueNotifier<String>(AppPalette.night.id);
 
   /// İl değişince ezan vakti kartı yenilenir.
   static final city = ValueNotifier<String?>(null);
@@ -27,7 +27,16 @@ class SettingsService {
 
   static Future<void> init() async {
     _p = await SharedPreferences.getInstance();
-    final id = _p.getString('theme') ?? AppPalette.emerald.id;
+    var id = _p.getString('theme') ?? AppPalette.night.id;
+    // Yeni logo ile tasarım lacivert + gümüşe geçti: eski varsayılan (zümrüt) bir kez yeni temaya taşınır.
+    // Sonradan Ayarlar'dan zümrüt seçen kişinin seçimi korunur.
+    if (_p.getBool('temaGeceGecis') != true) {
+      if (id == AppPalette.emerald.id) {
+        id = AppPalette.night.id;
+        await _p.setString('theme', id);
+      }
+      await _p.setBool('temaGeceGecis', true);
+    }
     AppColors.use(AppPalette.byId(id));
     themeId.value = AppColors.palette.id;
     city.value = _p.getString('city');

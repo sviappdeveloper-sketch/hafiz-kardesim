@@ -33,7 +33,7 @@ class SourcesScreen extends StatelessWidget {
           lt('AlAdhan Namaz Vakitleri API\'si (aladhan.com), Diyanet İşleri Başkanlığı hesap yöntemi. Vakitler il merkezinin koordinatlarına göre hesaplanır; ilçelerde birkaç dakikalık fark olabilir. Kesin vakitler için Diyanet İşleri Başkanlığı\'nın resmî vakitleri esas alınmalıdır.')),
     ]),
     (lt('Görseller'), [
-      (lt('Logo ve simge'), 'Hafız Kardeşim için kullanılan altın "حافظ" (hâfız) hat logosu.'),
+      (lt('Logo ve simge'), 'Hafız Kardeşim için kullanılan gümüş "حافظ" (hâfız) hat logosu, gece mavisi zeminde.'),
       (lt('Desenler'), lt('Uygulama için özgün olarak üretilmiştir.')),
     ]),
     (lt('Yazı tipleri'), [

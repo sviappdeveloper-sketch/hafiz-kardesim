@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../l10n/l10n.dart';
 import '../l10n/l10n.dart';
 
-/// Renk takımı. Uygulama iki tema sunar: koyu "Zümrüt" (varsayılan) ve açık "Parşömen".
+/// Renk takımı. Uygulama üç tema sunar: koyu "Gece Mavisi" (varsayılan, logodaki lacivert + gümüş),
+/// koyu "Zümrüt" ve açık "Parşömen".
 class AppPalette {
   const AppPalette({
     required this.id,
@@ -26,7 +27,25 @@ class AppPalette {
   final bool light;
   final Color inkDeep, ink, inkSoft, inkLine, gold, goldLight, ivory, muted, reading, done, danger;
 
-  /// Logodaki derin zümrüt yeşili ve parlak altın; fildişi metin.
+  /// Yeni logodaki gece laciverti ve parlak gümüş.
+  static const night = AppPalette(
+    id: 'gece',
+    name: 'Gece Mavisi',
+    light: false,
+    inkDeep: Color(0xFF02060F),
+    ink: Color(0xFF050E20),
+    inkSoft: Color(0xFF0A1A36),
+    inkLine: Color(0xFF1B3462),
+    gold: Color(0xFFCDD5E1),
+    goldLight: Color(0xFFF2F5FA),
+    ivory: Color(0xFFEDF1F7),
+    muted: Color(0xFF8D9DBA),
+    reading: Color(0xFF6FA8E8),
+    done: Color(0xFF86C29A),
+    danger: Color(0xFFE08A78),
+  );
+
+  /// Eski logodaki derin zümrüt yeşili ve parlak altın; fildişi metin.
   static const emerald = AppPalette(
     id: 'zumrut',
     name: 'Zümrüt',
@@ -62,13 +81,20 @@ class AppPalette {
     danger: Color(0xFFA9462E),
   );
 
-  static const all = [emerald, parchment];
-  static AppPalette byId(String? id) => all.firstWhere((p) => p.id == id, orElse: () => emerald);
+  static const all = [night, emerald, parchment];
+  static AppPalette byId(String? id) => all.firstWhere((p) => p.id == id, orElse: () => night);
+
+  /// Tema kartındaki kısa açıklama.
+  String get aciklama => switch (id) {
+        'gece' => 'Koyu · lacivert ve gümüş',
+        'zumrut' => 'Koyu · zümrüt yeşili',
+        _ => 'Açık · ham parşömen',
+      };
 }
 
 /// Uygulamanın o anki renkleri (seçili temaya göre).
 class AppColors {
-  static AppPalette _p = AppPalette.emerald;
+  static AppPalette _p = AppPalette.night;
   static AppPalette get palette => _p;
   static void use(AppPalette p) => _p = p;
   static bool get isLight => _p.light;

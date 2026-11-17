@@ -209,7 +209,7 @@ res = root / 'android/app/src/main/res'
 (res / 'values').mkdir(parents=True, exist_ok=True)
 (res / 'values/splash_colors.xml').write_text(
     '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-    '    <color name="hk_splash">#FF001A0D</color>\n</resources>\n')
+    '    <color name="hk_splash">#FF02060F</color>\n</resources>\n')
 bg = ('<?xml version="1.0" encoding="utf-8"?>\n'
       '<layer-list xmlns:android="http://schemas.android.com/apk/res/android">\n'
       '    <item android:drawable="@color/hk_splash" />\n</layer-list>\n')

@@ -57,6 +57,37 @@ void main() {
     expect(_durum(w), 'OOOO');
   });
 
+  test('Lafız toleransı: ayetin %10\'u içindeki atlama doğru sayılır', () {
+    final w = _w(['صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ']);
+    final e = Eslestirici(w);
+    for (final k in 'صراط الذين انعمت عليهم غير المغضوب عليهم الضالين'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w), 'O' * w.length);
+    expect(e.bitti, isTrue);
+  });
+
+  test('Son kelime yarım duyulsa da doğru sayılır', () {
+    final w = _w(['صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ']);
+    final e = Eslestirici(w);
+    for (final k in 'صراط الذين انعمت عليهم غير المغضوب عليهم ولا الضال'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w), 'O' * w.length);
+    expect(e.bitti, isTrue);
+  });
+
+  test('Tolerans %10\'u aşan eksikleri doğru saymaz', () {
+    final w = _w(['صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ']);
+    final e = Eslestirici(w);
+    for (final k in 'صراط الذين انعمت عليهم غير المغضوب عليهم ولا'.split(' ')) {
+      e.besle(k);
+    }
+    e.bitisToleransi();
+    expect(_durum(w), '${'O' * (w.length - 1)}.');
+    expect(e.bitti, isFalse);
+  });
+
   test('Puan: ipucu yarım sayılır', () {
     final w = _w(['قُلْ هُوَ ٱللَّهُ أَحَدٌ']);
     w[0].st = KD.dogru;

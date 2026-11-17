@@ -15,6 +15,8 @@ class Ses {
   static bool _hazir = false;
   static bool _istek = false;
   static int _off = 0;
+  /// Son kısmi sonucun kelimeleri: tanıma kesin sonuç vermeden durursa son kelime kaybolmasın.
+  static List<String> _sonTk = const [];
   static void Function(String kelime)? _kelime;
   static void Function(String metin)? _canli;
   static void Function(String hata)? _hata;
@@ -55,6 +57,7 @@ class Ses {
   static Future<void> _dinle() async {
     if (!_istek) return;
     _off = 0;
+    _sonTk = const [];
     try {
       await _s.listen(
         onResult: _sonuc,
@@ -81,12 +84,28 @@ class Ses {
     });
   }
 
+  /// Kısmi sonuçta bekletilen (henüz gönderilmemiş) kelimeleri gönderir.
+  /// [_off] sıfırlanmaz: ardından kesin sonuç gelirse aynı kelimeler ikinci kez gönderilmez.
+  static void _bosalt() {
+    final tk = _sonTk;
+    _sonTk = const [];
+    final bas = _off;
+    if (tk.length > _off) _off = tk.length;
+    for (var i = bas; i < tk.length; i++) {
+      _kelime?.call(tk[i]);
+    }
+  }
+
   static void _durum(String d) {
-    if ((d == 'done' || d == 'notListening') && _istek) _yeniden(120);
+    if (d == 'done' || d == 'notListening') {
+      _bosalt();
+      if (_istek) _yeniden(120);
+    }
   }
 
   static void _onHata(SpeechRecognitionError e) {
     final m = e.errorMsg;
+    _bosalt();
     if (m.contains('no_match') || m.contains('speech_timeout') || m.contains('busy') || m.contains('client')) {
       _yeniden(m.contains('busy') ? 400 : 150);
       return;
@@ -108,13 +127,19 @@ class Ses {
       _kelime?.call(tk[i]);
     }
     if (r.finalResult) {
+      // Kesin sonuç kısmi sonuçtan kısa geldiyse son kelime hiç gönderilmemiş olabilir.
+      // (Tekrar gönderilen önceki kelime eşleştiricide yok sayılır.)
+      if (kadar <= _off && tk.isNotEmpty) _kelime?.call(tk.last);
       _off = 0;
-    } else if (kadar > _off) {
-      _off = kadar;
+      _sonTk = const [];
+    } else {
+      _sonTk = tk;
+      if (kadar > _off) _off = kadar;
     }
   }
 
   static Future<void> durdur() async {
+    if (_istek) _bosalt();
     _istek = false;
     _t?.cancel();
     acik.value = false;

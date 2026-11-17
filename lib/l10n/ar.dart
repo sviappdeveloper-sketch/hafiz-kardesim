@@ -326,6 +326,8 @@ const Map<String, String> arStrings = {
   'Kimler katılabilir?': 'من يمكنه الانضمام؟',
   'Kodla katıl': 'الانضمام برمز',
   'Kopyala': 'نسخ',
+  'Gece Mavisi': 'أزرق ليلي',
+  'Koyu · lacivert ve gümüş': 'داكن · كحلي وفضي',
   'Koyu · zümrüt yeşili': 'داكن · أخضر زمردي',
   'Kur\'ân-ı Kerîm ayetlerinin kısa ve sade Türkçe mealleri; her ayetin suresi ve ayet numarası kartın altında belirtilmiştir.': 'معانٍ مختصرة لآيات من القرآن الكريم، واسم السورة ورقم الآية مذكوران أسفل البطاقة.',
   'Kur\'ân-ı Kerîm metni': 'نص القرآن الكريم',

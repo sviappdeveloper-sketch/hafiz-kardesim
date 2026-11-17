@@ -326,6 +326,8 @@ const Map<String, String> enStrings = {
   'Kimler katılabilir?': 'Who can join?',
   'Kodla katıl': 'Join with code',
   'Kopyala': 'Copy',
+  'Gece Mavisi': 'Night Blue',
+  'Koyu · lacivert ve gümüş': 'Dark · navy and silver',
   'Koyu · zümrüt yeşili': 'Dark · emerald green',
   'Kur\'ân-ı Kerîm ayetlerinin kısa ve sade Türkçe mealleri; her ayetin suresi ve ayet numarası kartın altında belirtilmiştir.': 'Short, plain English meanings of verses of the Holy Quran; the sura and verse number are shown under the card.',
   'Kur\'ân-ı Kerîm metni': 'Text of the Holy Quran',

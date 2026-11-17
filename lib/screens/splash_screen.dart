@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/ornaments.dart';
 import 'auth_gate.dart';
 
-/// Hafif açılış: noktalı yeşil zeminde logonun merkezinden açılan altın el-Kur'ân logosu,
+/// Hafif açılış: koyu zeminde logonun merkezinden açılan حافظ logosu,
 /// ardından uygulama yumuşakça açılır. Ekrana dokununca hemen geçilir.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
