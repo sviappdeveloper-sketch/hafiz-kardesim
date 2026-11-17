@@ -1,0 +1,36 @@
+name: iOS deneme derlemesi (imzasız)
+# "ios-dene" dalına gönderimle ya da elle çalışır. İmza/yükleme yapmaz; yalnızca iPhone kodunun derlendiğini doğrular.
+# Mac dakikaları özel depolarda 10 kat sayıldığı için her gönderimde çalışmaz.
+on:
+  push:
+    branches: [ios-dene]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode 26 seç
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$X" ] && sudo xcode-select -s "$X/Contents/Developer"; xcodebuild -version | head -1
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter create --org com.sviapp --project-name hafiz_kardesim --platforms android,ios . > /dev/null
+      - run: flutter pub get
+      - run: python3 tool/ci_ios.py
+      - run: dart run flutter_launcher_icons
+      - name: iOS derlemesi (imzasız)
+        run: |
+          set -o pipefail
+          flutter build ios --release --no-codesign 2>&1 | tee /tmp/ios.txt
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" build/ios/iphoneos/Runner.app/Info.plist | tee -a /tmp/ios.txt
+      - name: Sonucu 'log' dalına yaz
+        if: always()
+        run: |
+          mkdir -p /tmp/l && tail -80 /tmp/ios.txt > /tmp/l/ios.txt 2>/dev/null; echo "${{ job.status }}" > /tmp/l/DURUM.txt
+          cd /tmp/l && git init -q -b log-ios && git config user.name ci && git config user.email ci@x && git add . && git commit -qm ios
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" log-ios
