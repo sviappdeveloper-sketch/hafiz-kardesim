@@ -70,12 +70,14 @@ class KD {
 }
 
 class Kelime {
-  Kelime({required this.li, required this.ai, required this.t, required this.n, this.muq = false}) : k = skel(n);
+  Kelime({required this.li, required this.ai, required this.t, required this.n, this.muq = false, this.sureBasi = false}) : k = skel(n);
   /// Oturumdaki ayet sırası, genel ayet numarası (0–6235), mushaf yazımı, normalize yazım.
   final int li, ai;
   final String t, n;
   final String k;
   final bool muq;
+  /// Surenin ilk ayetinin ilk kelimesi (öncesinde besmele okunabilir).
+  final bool sureBasi;
   String pm = '';
   bool end = false;
   int st = KD.gizli;
@@ -83,10 +85,12 @@ class Kelime {
 }
 
 /// Ayetleri kelimelere böler. [metin]: ai → mushaf metni.
-List<Kelime> kelimeler(List<int> ayetler, String Function(int ai) metin, int Function(int ai) ayetNo) {
+/// [liBas]: oturuma sonradan eklenen ayetler için ayet sırasının başlangıcı.
+List<Kelime> kelimeler(List<int> ayetler, String Function(int ai) metin, int Function(int ai) ayetNo, {int liBas = 0}) {
   final w = <Kelime>[];
-  for (var li = 0; li < ayetler.length; li++) {
-    final ai = ayetler[li];
+  for (var lj = 0; lj < ayetler.length; lj++) {
+    final li = liBas + lj;
+    final ai = ayetler[lj];
     final parca = metin(ai).split(' ');
     for (var wi = 0; wi < parca.length; wi++) {
       final x = parca[wi];
@@ -98,7 +102,8 @@ List<Kelime> kelimeler(List<int> ayetler, String Function(int ai) metin, int Fun
         continue;
       }
       final muq = wi == 0 && ayetNo(ai) <= 2 && muqattaat.contains(n) && (x.contains('ٓ') || n == 'طه' || n == 'يس');
-      w.add(Kelime(li: li, ai: ai, t: x, n: n, muq: muq));
+      final ilk = w.isEmpty || w.last.li != li;
+      w.add(Kelime(li: li, ai: ai, t: x, n: n, muq: muq, sureBasi: ilk && ayetNo(ai) == 1));
     }
   }
   for (var i = 0; i < w.length; i++) {
@@ -221,6 +226,8 @@ class Eslestirici {
         return degisen;
       }
     }
+    // başta (ya da yeni sure başında) eûzü-besmele: yok say
+    if ((c == 0 || x.sureBasi) && girisKelimeleri.contains(h)) return degisen;
     // atlanan kelimeler: ileride (en çok 3) eşleşme var mı
     for (var j = 1; j <= 3 && c + j < w.length; j++) {
       final y = w[c + j];
@@ -239,8 +246,7 @@ class Eslestirici {
         return degisen;
       }
     }
-    // başta eûzü-besmele ya da tekrar edilen önceki kelime: yok say
-    if (c == 0 && girisKelimeleri.contains(h)) return degisen;
+    // tekrar edilen önceki kelime: yok say
     if (c > 0 && sim(h, w[c - 1]) >= .8) {
       _buf = '';
       return degisen;

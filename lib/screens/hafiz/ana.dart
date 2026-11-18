@@ -619,6 +619,7 @@ class _HafizAyarEkraniState extends State<HafizAyarEkrani> {
               Align(alignment: Alignment.centerLeft, child: Text('VARSAYILAN GİZLEME', style: AppText.label())),
               const SizedBox(height: 6),
               const GizlemeSecici(),
+              const BeyazSayfaAnahtari(),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: HfAyar.besmele,

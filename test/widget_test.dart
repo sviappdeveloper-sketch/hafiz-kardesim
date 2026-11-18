@@ -88,6 +88,32 @@ void main() {
     expect(e.bitti, isFalse);
   });
 
+  test('Sure geçişinde okunan besmele hata sayılmaz, sonraki sureyle devam edilir', () {
+    final metin = ['وَٱلْعَصْرِ', 'قُلْ هُوَ ٱللَّهُ أَحَدٌ'];
+    final w = kelimeler([0, 1], (i) => metin[i], (i) => i == 0 ? 3 : 1);
+    final e = Eslestirici(w);
+    for (final k in 'والعصر بسم الله الرحمن الرحيم قل هو الله احد'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w), 'O' * w.length);
+    expect(e.bitti, isTrue);
+  });
+
+  test('Sonradan eklenen ayetler sırayı sürdürür', () {
+    final w = _w(['قُلْ هُوَ ٱللَّهُ أَحَدٌ']);
+    final e = Eslestirici(w);
+    for (final k in 'قل هو الله'.split(' ')) {
+      e.besle(k);
+    }
+    w.addAll(kelimeler([1], (i) => 'ٱللَّهُ ٱلصَّمَدُ', (i) => 2, liBas: 1));
+    for (final k in 'احد الله الصمد'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w), 'O' * w.length);
+    expect(w.last.li, 1);
+    expect(e.bitti, isTrue);
+  });
+
   test('Puan: ipucu yarım sayılır', () {
     final w = _w(['قُلْ هُوَ ٱللَّهُ أَحَدٌ']);
     w[0].st = KD.dogru;

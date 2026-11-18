@@ -32,13 +32,51 @@ class _OkuEkraniState extends State<OkuEkrani> {
 
   bool get _ses => widget.mod == 'ses';
 
+  /// Oturumdaki ayetler: seçilen bölüm + okumaya devam edilirse sıradaki ayetler (sonraki sure dahil).
+  late final List<int> _ayetler = List.of(widget.ayetler);
+  late final int _secimSonu = widget.ayetler.length;
+
+  /// Seçilen bölüm bitti mi (sonrası "devam" ayetleri).
+  bool get _secimBitti => _e.cur >= _w.length || _w[_e.cur].li >= _secimSonu;
+
   @override
   void initState() {
     super.initState();
-    _w = kelimeler(widget.ayetler, (ai) => Kuran.a[ai].metin, (ai) => Kuran.a[ai].n);
+    _w = kelimeler(_ayetler, (ai) => Kuran.a[ai].metin, (ai) => Kuran.a[ai].n);
     _e = Eslestirici(_w);
     _keys = List.generate(_w.length, (_) => GlobalKey());
     Ses.acik.addListener(_yenile);
+    _uzatGerekirse();
+  }
+
+  /// Okuma sona yaklaşınca sıradaki ayetleri gizli olarak ekler: kişi sure geçişinde de okumaya
+  /// devam ederse elle sure seçmesi beklenmez, takip kesintisiz sürer.
+  void _uzatGerekirse() {
+    if (_ayetler.isEmpty || _w.length - _e.cur > 12) return;
+    final son = _ayetler.last;
+    if (son + 1 >= Kuran.a.length) return;
+    final s = Kuran.a[son].s;
+    final yeni = <int>[];
+    var i = son + 1;
+    // Önce bu surenin kalanı, sure bittiyse sonraki sure (en çok 30 ayet; gerekince yine eklenir).
+    final hedefSure = Kuran.a[son].n >= Kuran.ayetSayisi(s) ? s + 1 : s;
+    while (i < Kuran.a.length && Kuran.a[i].s == hedefSure && yeni.length < 30) {
+      yeni.add(i++);
+    }
+    if (yeni.isEmpty) return;
+    final ek = kelimeler(yeni, (ai) => Kuran.a[ai].metin, (ai) => Kuran.a[ai].n, liBas: _ayetler.length);
+    _ayetler.addAll(yeni);
+    _w.addAll(ek);
+    _keys.addAll(List.generate(ek.length, (_) => GlobalKey()));
+  }
+
+  /// Sonuca girecek kısım: seçilen bölüm + devamda okunmaya başlanan ayetler.
+  int get _okunanAyetSayisi {
+    var son = _secimSonu - 1;
+    for (final k in _w) {
+      if (k.st != KD.gizli && k.li > son) son = k.li;
+    }
+    return son + 1;
   }
 
   @override
@@ -62,6 +100,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
   }
 
   void _sonra() {
+    _uzatGerekirse();
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) => _kaydir());
     if (_e.bitti && !_bitti) {
@@ -198,10 +237,14 @@ class _OkuEkraniState extends State<OkuEkrani> {
     }
     _bitti = true;
     final sn = DateTime.now().difference(_t0).inSeconds;
-    final o = Kayit.i.oturumKaydet(tur: widget.mod, ayetler: widget.ayetler, w: _w, sureSn: sn);
+    // Devamda hiç okunmayan ayetler sonuca katılmaz.
+    final n = _okunanAyetSayisi;
+    final ayetler = _ayetler.sublist(0, n);
+    final w = _w.where((k) => k.li < n).toList();
+    final o = Kayit.i.oturumKaydet(tur: widget.mod, ayetler: ayetler, w: w, sureSn: sn);
     DriveYedek.otomatikYedekle();
     Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (_) => SonucEkrani(oturum: o, w: _w, mod: widget.mod)));
+        context, MaterialPageRoute(builder: (_) => SonucEkrani(oturum: o, w: w, mod: widget.mod)));
   }
 
   Future<void> _ayarlar() async {
@@ -235,6 +278,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
               ]),
               const SizedBox(height: 8),
               GizlemeSecici(onChanged: (_) => _yenile()),
+              BeyazSayfaAnahtari(onChanged: _yenile),
               const SizedBox(height: 14),
               Text('Yazı tipi', style: AppText.body(15)),
               const SizedBox(height: 6),
@@ -248,7 +292,8 @@ class _OkuEkraniState extends State<OkuEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    final yuzde = _w.isEmpty ? 0.0 : _w.where((k) => k.st != KD.gizli).length / _w.length;
+    final secim = _w.where((k) => k.li < _secimSonu);
+    final yuzde = secim.isEmpty ? 0.0 : secim.where((k) => k.st != KD.gizli).length / secim.length;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -256,14 +301,14 @@ class _OkuEkraniState extends State<OkuEkrani> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(Kuran.etiketListe(widget.ayetler)),
+          title: Text(Kuran.etiketListe(_ayetler.sublist(0, _okunanAyetSayisi))),
           actions: [IconButton(onPressed: _ayarlar, icon: const Icon(Icons.tune))],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(4),
             child: LinearProgressIndicator(value: yuzde, minHeight: 4, color: AppColors.gold, backgroundColor: AppColors.inkLine),
           ),
         ),
-        body: PatternBackground(
+        body: OkumaZemini(
           child: Column(children: [
             Expanded(
               child: SingleChildScrollView(
@@ -271,7 +316,9 @@ class _OkuEkraniState extends State<OkuEkrani> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   MushafGorunum(
                     w: _w,
-                    ayetler: widget.ayetler,
+                    ayetler: _ayetler,
+                    ayetSiniri: _secimBitti ? null : _secimSonu,
+                    bosCerceve: !_ses,
                     cur: _e.cur,
                     gizle: HfAyar.gizle,
                     anahtarlar: _keys,
@@ -310,7 +357,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-          child: _ses
+          child: _devamBilgisi(_ses
               ? Column(mainAxisSize: MainAxisSize.min, children: [
                   SizedBox(
                     height: 30,
@@ -360,10 +407,23 @@ class _OkuEkraniState extends State<OkuEkrani> {
                     kucuk(Icons.undo, 'Geri al', _geriAl),
                     kucuk(Icons.flag_outlined, 'Bitir', _bitir),
                   ]),
-                ]),
+                ])),
         ),
       ),
     );
+  }
+
+  /// Seçilen bölüm bitince üstte kısa bir bilgi: okumaya devam edilebilir.
+  Widget _devamBilgisi(Widget alt) {
+    if (!_secimBitti || _bitti) return alt;
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
+        child: Text('✓ Seçtiğin bölüm bitti. Okumaya devam edersen sıradaki ayetlerle (sonraki sure dahil) sürer.',
+            textAlign: TextAlign.center, style: AppText.body(12.5, color: AppColors.goldLight, weight: FontWeight.w600)),
+      ),
+      alt,
+    ]);
   }
 }
 

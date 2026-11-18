@@ -5,12 +5,25 @@ import '../../hafiz/arapca.dart';
 import '../../hafiz/kuran.dart';
 import '../../services/settings_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/ornaments.dart';
 
 /// Hafız ekranlarının ortak ayarları ve parçaları.
 class HfAyar {
   static double get yazi => SettingsService.prefs.getDouble('hfYazi') ?? 28;
   static Future<void> setYazi(double v) => SettingsService.prefs.setDouble('hfYazi', v.clamp(18, 48));
-  static String get gizle => SettingsService.prefs.getString('hfGizle') ?? 'gizli';
+  static String get gizle {
+    final p = SettingsService.prefs;
+    // Bir kez: yeni varsayılan "boş sayfa" (okudukça beliren yazı).
+    if (p.getBool('hfBosGecis') != true) {
+      p.setBool('hfBosGecis', true);
+      p.setString('hfGizle', 'bos');
+    }
+    return p.getString('hfGizle') ?? 'bos';
+  }
+
+  /// Okurken beyaz kâğıt sayfa (varsayılan) ya da temanın koyu zemini.
+  static bool get beyaz => SettingsService.prefs.getBool('hfBeyaz') ?? true;
+  static Future<void> setBeyaz(bool v) => SettingsService.prefs.setBool('hfBeyaz', v);
   static Future<void> setGizle(String v) => SettingsService.prefs.setString('hfGizle', v);
   static bool get besmele => SettingsService.prefs.getBool('hfBesmele') ?? true;
   static Future<void> setBesmele(bool v) => SettingsService.prefs.setBool('hfBesmele', v);
@@ -123,7 +136,13 @@ class MushafGorunum extends StatelessWidget {
     required this.anahtarlar,
     this.hepsiAcik = false,
     this.onTap,
+    this.bosCerceve = false,
+    this.ayetSiniri,
   });
+  /// Bu sıradan sonraki ayetler (okumaya devam için eklenenler) henüz gösterilmez.
+  final int? ayetSiniri;
+  /// Boş sayfada da sıradaki kelimenin çerçevesi gösterilsin mi (Kardeşime Dinlet'te işaretleyen için).
+  final bool bosCerceve;
   final List<Kelime> w;
   final List<int> ayetler;
   final int cur;
@@ -131,6 +150,21 @@ class MushafGorunum extends StatelessWidget {
   final List<GlobalKey> anahtarlar;
   final bool hepsiAcik;
   final void Function(int i)? onTap;
+
+  /// Beyaz sayfa renkleri (kâğıt üstüne koyu mürekkep) ya da temanın renkleri.
+  static bool get _b => HfAyar.beyaz;
+  static Color get yazi => _b ? const Color(0xFF15181E) : AppColors.ivory;
+  static Color get vurgu => _b ? const Color(0xFF8A6A1E) : AppColors.gold;
+  static Color get soluk => _b ? const Color(0xFF7A808A) : AppColors.muted;
+  static Color get kutu => _b ? const Color(0xFFE6E8EC) : AppColors.inkLine;
+  static Color renk(int st) => !_b
+      ? durumRengi(st)
+      : switch (st) {
+          KD.hata => const Color(0xFFC62828),
+          KD.atla => const Color(0xFFD27A00),
+          KD.ipucu => const Color(0xFF1E63B8),
+          _ => yazi,
+        };
 
   @override
   Widget build(BuildContext context) {
@@ -149,6 +183,7 @@ class MushafGorunum extends StatelessWidget {
     var li = -1;
     for (var i = 0; i < w.length; i++) {
       final k = w[i];
+      if (ayetSiniri != null && k.li >= ayetSiniri!) break;
       if (k.li != li) {
         li = k.li;
         final a = Kuran.a[k.ai];
@@ -160,20 +195,23 @@ class MushafGorunum extends StatelessWidget {
             child: Text(
               a.n == 1 ? Kuran.ad(a.s).toUpperCase() : '${Kuran.ad(a.s).toUpperCase()} · ${a.n}. AYETTEN',
               textAlign: TextAlign.center,
-              style: AppText.label(color: AppColors.muted),
+              style: AppText.label(color: soluk),
             ),
           ));
           if (a.n == 1) {
-            bloklar.add(Text(Kuran.arapAd(a.s), textAlign: TextAlign.center, style: arapYazi(fs * .8, color: AppColors.gold)));
+            bloklar.add(Text(Kuran.arapAd(a.s), textAlign: TextAlign.center, style: arapYazi(fs * .8, color: vurgu)));
             if (a.s != 1 && a.s != 9 && HfAyar.besmele) {
-              bloklar.add(Text(Kuran.besmele, textAlign: TextAlign.center, style: arapYazi(fs * .8, color: AppColors.muted)));
+              bloklar.add(Text(Kuran.besmele, textAlign: TextAlign.center, style: arapYazi(fs * .8, color: soluk)));
             }
           }
         }
       }
       parca.add(KeyedSubtree(key: anahtarlar[i], child: _kelime(i, k, fs)));
       if (k.end) {
-        parca.add(Text('﴿${arapRakam(Kuran.a[k.ai].n)}﴾', style: arapYazi(fs * .8, color: AppColors.gold)));
+        // Boş sayfada ayet numarası da ayet okununca belirir.
+        final gorunur = hepsiAcik || gizle != 'bos' || k.st != KD.gizli;
+        parca.add(Text('﴿${arapRakam(Kuran.a[k.ai].n)}﴾',
+            style: arapYazi(fs * .8, color: gorunur ? vurgu : Colors.transparent)));
       }
     }
     kapat();
@@ -183,18 +221,18 @@ class MushafGorunum extends StatelessWidget {
   Widget _kelime(int i, Kelime k, double fs) {
     final gizli = k.st == KD.gizli && !hepsiAcik;
     final simdiki = i == cur;
-    final renk = k.st == KD.gizli ? (hepsiAcik ? AppColors.ivory.withValues(alpha: .55) : AppColors.ivory) : durumRengi(k.st);
+    final renk = k.st == KD.gizli ? (hepsiAcik ? yazi.withValues(alpha: .55) : yazi) : MushafGorunum.renk(k.st);
     final st = arapYazi(fs, color: renk);
     Widget metin;
     if (gizli && gizle == 'harf') {
       final m = RegExp('^.[ً-ٰٟٓ-ٕۡ]*').firstMatch(k.t);
       final ilk = m?.group(0) ?? '';
       metin = Text.rich(TextSpan(children: [
-        TextSpan(text: ilk, style: st.copyWith(color: AppColors.muted)),
+        TextSpan(text: ilk, style: st.copyWith(color: soluk)),
         TextSpan(text: k.t.substring(ilk.length), style: st.copyWith(color: Colors.transparent)),
       ]));
     } else if (gizli && gizle == 'silik') {
-      metin = Text(k.t, style: st.copyWith(color: AppColors.ivory.withValues(alpha: .13)));
+      metin = Text(k.t, style: st.copyWith(color: yazi.withValues(alpha: .13)));
     } else if (gizli) {
       metin = Text(k.t, style: st.copyWith(color: Colors.transparent));
     } else {
@@ -207,7 +245,7 @@ class MushafGorunum extends StatelessWidget {
             decorationStyle: k.st == KD.hata ? TextDecorationStyle.wavy : TextDecorationStyle.dotted,
           ),
         ),
-        if (k.pm.isNotEmpty) TextSpan(text: ' ${k.pm}', style: st.copyWith(color: AppColors.gold, fontSize: fs * .7)),
+        if (k.pm.isNotEmpty) TextSpan(text: ' ${k.pm}', style: st.copyWith(color: vurgu, fontSize: fs * .7)),
       ]));
     }
     return GestureDetector(
@@ -216,9 +254,10 @@ class MushafGorunum extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
-          color: gizli && gizle == 'gizli' ? AppColors.inkLine.withValues(alpha: .9) : Colors.transparent,
+          color: gizli && gizle == 'gizli' ? kutu.withValues(alpha: .9) : Colors.transparent,
           borderRadius: BorderRadius.circular(7),
-          border: simdiki ? Border.all(color: AppColors.gold, width: 2) : null,
+          // Boş sayfada harflerin üstüne hiçbir şey çizilmez (sıradaki kelime çerçevesi de yok).
+          border: simdiki && (bosCerceve || !(gizli && gizle == 'bos')) ? Border.all(color: vurgu, width: 2) : null,
         ),
         child: metin,
       ),
@@ -234,13 +273,13 @@ class DurumAciklama extends StatelessWidget {
     Widget n(Color c, String t) => Row(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 10, height: 10, decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(3))),
           const SizedBox(width: 4),
-          Text(t, style: AppText.body(11.5, color: AppColors.muted)),
+          Text(t, style: AppText.body(11.5, color: MushafGorunum.soluk)),
         ]);
     return Wrap(spacing: 12, runSpacing: 4, children: [
-      n(AppColors.ivory, 'doğru'),
-      n(AppColors.danger, 'hatalı'),
-      n(const Color(0xFFE0A030), 'atlandı'),
-      n(AppColors.reading, 'ipucu'),
+      n(MushafGorunum.renk(KD.dogru), 'doğru'),
+      n(MushafGorunum.renk(KD.hata), 'hatalı'),
+      n(MushafGorunum.renk(KD.atla), 'atlandı'),
+      n(MushafGorunum.renk(KD.ipucu), 'ipucu'),
     ]);
   }
 }
@@ -259,7 +298,8 @@ class _GizlemeSeciciState extends State<GizlemeSecici> {
     final g = HfAyar.gizle;
     return SegmentedButton<String>(
       segments: const [
-        ButtonSegment(value: 'gizli', label: Text('Tam gizli')),
+        ButtonSegment(value: 'bos', label: Text('Boş sayfa')),
+        ButtonSegment(value: 'gizli', label: Text('Kutulu')),
         ButtonSegment(value: 'harf', label: Text('İlk harf')),
         ButtonSegment(value: 'silik', label: Text('Silik')),
       ],
@@ -298,3 +338,35 @@ class SayiKutu extends StatelessWidget {
 }
 
 String sureMetni(int sn) => sn < 60 ? '$sn sn' : '${sn ~/ 60} dk ${sn % 60} sn';
+
+/// "Beyaz sayfa" anahtarı.
+class BeyazSayfaAnahtari extends StatefulWidget {
+  const BeyazSayfaAnahtari({super.key, this.onChanged});
+  final VoidCallback? onChanged;
+  @override
+  State<BeyazSayfaAnahtari> createState() => _BeyazSayfaAnahtariState();
+}
+
+class _BeyazSayfaAnahtariState extends State<BeyazSayfaAnahtari> {
+  @override
+  Widget build(BuildContext context) => SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        value: HfAyar.beyaz,
+        onChanged: (v) async {
+          await HfAyar.setBeyaz(v);
+          setState(() {});
+          widget.onChanged?.call();
+        },
+        title: Text('Beyaz sayfa', style: AppText.body(15)),
+        subtitle: Text('Okurken bembeyaz kâğıt; yazı okudukça belirir', style: AppText.body(12, color: AppColors.muted)),
+      );
+}
+
+/// Okuma sayfasının zemini: beyaz kâğıt ya da temanın desenli zemini.
+class OkumaZemini extends StatelessWidget {
+  const OkumaZemini({super.key, required this.child});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) =>
+      HfAyar.beyaz ? ColoredBox(color: Colors.white, child: child) : PatternBackground(child: child);
+}

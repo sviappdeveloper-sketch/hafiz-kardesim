@@ -425,7 +425,8 @@ class _CanliEkraniState extends State<CanliEkrani> {
               ),
             ),
             Expanded(
-              child: SingleChildScrollView(
+              child: OkumaZemini(
+                child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 30),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   MushafGorunum(
@@ -449,6 +450,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
                     ),
                   ],
                 ]),
+              ),
               ),
             ),
             _hocayim ? _hocaAlt(c) : _ogrenciAlt(),
