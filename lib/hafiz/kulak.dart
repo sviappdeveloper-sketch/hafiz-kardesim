@@ -206,6 +206,15 @@ class Kulak {
     if (_mesgul || _isciPort == null || _sonuc == null) return;
     final nefes = _sessiz >= _hz * 45 ~/ 100;
     final cokUzun = _uzun >= _hz * 10;
+    // Çok kısa ses modele gönderilmez (boş ses modeli çökertir).
+    if (_uzun - math.min(_sessiz, _uzun) < _hz * 3 ~/ 10) {
+      if (nefes) {
+        _uzun = 0;
+        _cozulen = 0;
+        _konustu = false;
+      }
+      return;
+    }
     if (!nefes && !cokUzun && _uzun - _cozulen < _hz * 25 ~/ 100) return;
     if (!nefes && !cokUzun && _uzun - _sessiz <= _cozulen) return; // yeni ses yok
     final id = ++_sira;
@@ -258,6 +267,7 @@ class Kulak {
     _ses.setRange(0, kalan, _ses, kadar);
     _uzun = kalan;
     _cozulen = 0;
+    _sessiz = math.min(_sessiz, kalan);
     if (_sessiz >= kalan) {
       _konustu = false;
     }
@@ -309,14 +319,24 @@ void _isciAna(List<dynamic> a) {
   gelen.listen((m) {
     final l = m as List;
     final id = l[0] as int;
-    final ses = (l[1] as TransferableTypedData).materialize().asFloat32List();
+    final ham = (l[1] as TransferableTypedData).materialize().asFloat32List();
+    // Boş ya da çok kısa ses modeli (yerel kodda) çökertir: gönderilmez. Kısa ses sessizlikle
+    // uzatılır; sona eklenen sessizlik son kelimenin de tam çözülmesini sağlar.
+    if (ham.length < 1600) {
+      cevap.send([id, '', <String>[], <double>[]]);
+      return;
+    }
+    const bas = 4000, son = 8000;
+    final ses = Float32List(math.max(16000, bas + ham.length + son));
+    ses.setRange(bas, bas + ham.length, ham);
     try {
       final s = tanima.createStream();
       s.acceptWaveform(samples: ses, sampleRate: 16000);
       tanima.decode(s);
       final r = tanima.getResult(s);
       s.free();
-      cevap.send([id, r.text, r.tokens, r.timestamps]);
+      // Zamanlar baştaki eklenen sessizlik kadar geri alınır.
+      cevap.send([id, r.text, r.tokens, [for (final t in r.timestamps) t - bas / 16000]]);
     } catch (e) {
       cevap.send([id, '', <String>[], <double>[]]);
     }
