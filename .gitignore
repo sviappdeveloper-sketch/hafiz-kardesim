@@ -12,3 +12,4 @@ build/
 .idea/
 assets/asr/model.int8.onnx
 assets/asr/tokens.txt
+assets/asr/fonem.json

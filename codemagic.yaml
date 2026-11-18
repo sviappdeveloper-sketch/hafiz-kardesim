@@ -23,6 +23,7 @@ workflows:
       - name: Platform dosyalarını oluştur
         script: flutter create --org com.sviapp --project-name hafiz_kardesim --platforms android,ios .
       - name: Ses tanıma modeli (Kulak)
+        # HF_TOKEN gerekir: Codemagic'te "asc" grubuna gizli (secure) değişken olarak eklenmeli.
         script: bash tool/model_indir.sh
       - name: Paketler
         script: flutter pub get

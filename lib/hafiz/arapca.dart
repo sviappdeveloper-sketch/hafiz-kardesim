@@ -74,7 +74,8 @@ class KD {
 }
 
 class Kelime {
-  Kelime({required this.li, required this.ai, required this.t, required this.n, this.muq = false, this.sureBasi = false}) : k = skel(n);
+  Kelime({required this.li, required this.ai, required this.t, required this.n, this.muq = false, this.sureBasi = false, this.wi = 0})
+      : k = skel(n);
   /// Oturumdaki ayet sırası, genel ayet numarası (0–6235), mushaf yazımı, normalize yazım.
   final int li, ai;
   final String t, n;
@@ -82,6 +83,9 @@ class Kelime {
   final bool muq;
   /// Surenin ilk ayetinin ilk kelimesi (öncesinde besmele okunabilir).
   final bool sureBasi;
+  /// Ayet içindeki sırası (durak işaretleri sayılmaz) ve beklenen (sade) fonemleri (Kulak için).
+  final int wi;
+  String f = '';
   String pm = '';
   bool end = false;
   int st = KD.gizli;
@@ -96,6 +100,7 @@ List<Kelime> kelimeler(List<int> ayetler, String Function(int ai) metin, int Fun
     final li = liBas + lj;
     final ai = ayetler[lj];
     final parca = metin(ai).split(' ');
+    var sira = 0;
     for (var wi = 0; wi < parca.length; wi++) {
       final x = parca[wi];
       if (x.isEmpty) continue;
@@ -107,7 +112,7 @@ List<Kelime> kelimeler(List<int> ayetler, String Function(int ai) metin, int Fun
       }
       final muq = wi == 0 && ayetNo(ai) <= 2 && muqattaat.contains(n) && (x.contains('ٓ') || n == 'طه' || n == 'يس');
       final ilk = w.isEmpty || w.last.li != li;
-      w.add(Kelime(li: li, ai: ai, t: x, n: n, muq: muq, sureBasi: ilk && ayetNo(ai) == 1));
+      w.add(Kelime(li: li, ai: ai, t: x, n: n, muq: muq, sureBasi: ilk && ayetNo(ai) == 1, wi: sira++));
     }
   }
   for (var i = 0; i < w.length; i++) {
@@ -374,7 +379,12 @@ class Eslestirici {
     _bek.clear();
     _bekHam.clear();
     _kok = cur;
+    fKok = cur;
+    fOff = 0;
   }
+
+  /// Fonem eşleştiricisinin (fonem.dart) bölüm başı kelimesi ve duyulanın işlenmiş kısmı.
+  int fKok = 0, fOff = 0;
 
   // ───────────── Kendi ses tanımamız (Kulak) için: bölüm hizalama ─────────────
 

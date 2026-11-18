@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../hafiz/arapca.dart';
+import '../../hafiz/fonem.dart';
 import '../../hafiz/kayit.dart';
 import '../../hafiz/kulak.dart';
 import '../../hafiz/kuran.dart';
@@ -141,14 +142,16 @@ class _OkuEkraniState extends State<OkuEkrani> {
     }
     if (Kulak.kullanilabilir) {
       final ok = await Kulak.baslat(
-        sonuc: (kelimeler, kesin) {
+        sonuc: (duyulan, kesin) {
           if (!mounted) return;
           final once = _e.cur;
-          final yeni = _e.bolum(kelimeler, kesin: kesin);
+          final yeni = _e.fonem(duyulan, kesin: kesin);
           for (final i in yeni) {
             _gecmis.add((i, KD.gizli, once));
           }
-          _duyulan.value = kelimeler.reversed.take(8).toList().reversed.join(' ');
+          // Alttaki satır: son duyulan sesler.
+          final d = duyulan.replaceAll(' ', '');
+          _duyulan.value = d.length > 40 ? d.substring(d.length - 40) : d;
           if (yeni.isNotEmpty || _e.cur != once || kesin) _sonra();
         },
         hata: (h) {

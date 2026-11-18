@@ -21,6 +21,8 @@ jobs:
         with: { channel: stable, cache: true }
       - run: flutter create --org com.sviapp --project-name hafiz_kardesim --platforms android,ios . > /dev/null
       - run: bash tool/model_indir.sh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
       - run: flutter pub get
       - run: python3 tool/ci_ios.py
       - run: dart run flutter_launcher_icons

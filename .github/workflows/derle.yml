@@ -38,7 +38,9 @@ jobs:
         run: flutter create --org com.sviapp --project-name hafiz_kardesim --platforms android,ios . 2>&1 | tail -5
 
       - name: Ses tanıma modeli (Kulak)
-        run: bash tool/model_indir.sh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: bash tool/model_indir.sh 2>&1 | tee /tmp/model.txt; test ${PIPESTATUS[0]} -eq 0
 
       - name: Paketler
         run: flutter pub get 2>&1 | tee /tmp/pub.txt
