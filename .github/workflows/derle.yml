@@ -88,6 +88,11 @@ jobs:
           # GitHub dalına 100 MB'tan büyük dosya konamaz: büyük AAB yalnızca derleme eki (artifact) olarak kalır.
           A=build/app/outputs/bundle/release/app-release.aab
           if [ -f "$A" ] && [ "$(stat -c%s "$A")" -lt 95000000 ]; then cp "$A" /tmp/cikti/HafizKardesim.aab; fi
+          # GitHub dalında dosya sınırı 100 MB: büyük APK'lar 90 MB'lık parçalara bölünür
+          # (birleştirme: cat HafizKardesim.apk.parca-* > HafizKardesim.apk).
+          for f in /tmp/cikti/*.apk; do
+            if [ "$(stat -c%s "$f")" -gt 95000000 ]; then split -b 90m -d "$f" "$f.parca-" && rm "$f"; fi
+          done
           ls -la /tmp/cikti
           (cd android && ./gradlew -q signingReport 2>/dev/null | grep -E "Variant|SHA1|SHA-256" | head -12) > /tmp/cikti/IMZA.txt || true
           cd /tmp/cikti
