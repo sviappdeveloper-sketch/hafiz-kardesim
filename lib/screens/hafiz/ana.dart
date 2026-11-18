@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -59,10 +60,22 @@ class _HafizAnaState extends State<HafizAna> {
     if (old.me.id != widget.me.id) _yukle();
   }
 
+  /// Açılış takılırsa (bir adım bitmezse ya da hata verirse) sonsuz dönen çark yerine
+  /// hangi adımda kaldığı ve "Tekrar dene" gösterilir.
+  String? _yukHata;
+
   Future<void> _yukle() async {
-    await Kuran.yukle();
-    await Kayit.i.ac(widget.me.id);
-    if (mounted) setState(() => _hazir = true);
+    if (mounted && _yukHata != null) setState(() => _yukHata = null);
+    var adim = 'Kur\'an metni';
+    try {
+      await Kuran.yukle().timeout(const Duration(seconds: 25));
+      adim = 'çalışma geçmişi';
+      await Kayit.i.ac(widget.me.id).timeout(const Duration(seconds: 25));
+      if (mounted) setState(() => _hazir = true);
+    } catch (e) {
+      debugPrint('HafizAna açılış ($adim): $e');
+      if (mounted) setState(() => _yukHata = '$adim yüklenemedi: ${e is TimeoutException ? 'zaman aşımı' : e}');
+    }
   }
 
   void _ac(Widget w) => Navigator.push(context, MaterialPageRoute(builder: (_) => w));
@@ -76,7 +89,26 @@ class _HafizAnaState extends State<HafizAna> {
   Widget build(BuildContext context) {
     final me = widget.me;
     if (!_hazir) {
-      return Scaffold(backgroundColor: AppColors.inkDeep, body: const PatternBackground(child: LoadingView()));
+      final h = _yukHata;
+      return Scaffold(
+        backgroundColor: AppColors.inkDeep,
+        body: PatternBackground(
+          child: h == null
+              ? const LoadingView()
+              : SafeArea(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text(h, textAlign: TextAlign.center, style: AppText.body(14, color: AppColors.muted)),
+                        const SizedBox(height: 16),
+                        GoldButton(label: 'Tekrar dene', icon: Icons.refresh, onPressed: _yukle),
+                      ]),
+                    ),
+                  ),
+                ),
+        ),
+      );
     }
     return PopScope(
       canPop: _tab == 0,
