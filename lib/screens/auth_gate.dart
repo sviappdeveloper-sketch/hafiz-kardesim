@@ -35,7 +35,7 @@ class AuthGate extends StatelessWidget {
       stream: AuthService.authChanges(),
       builder: (context, authSnap) {
         if (authSnap.connectionState == ConnectionState.waiting) {
-          return Scaffold(backgroundColor: AppColors.inkDeep, body: PatternBackground(opacity: 0.05, child: SizedBox.expand()));
+          return const _Bekleme('Oturum bilgisi bekleniyor');
         }
         final user = authSnap.data;
         if (user == null) {
@@ -51,13 +51,13 @@ class AuthGate extends StatelessWidget {
           stream: AuthService.userStream(user.uid),
           builder: (context, snap) {
             if (!snap.hasData && snap.connectionState == ConnectionState.waiting) {
-              return Scaffold(backgroundColor: AppColors.inkDeep, body: PatternBackground(opacity: 0.05, child: SizedBox.expand()));
+              return const _Bekleme('Hesap bilgileri sunucudan bekleniyor');
             }
             final me = snap.data;
             if (me != null && me.blocked && !AuthService.isAdmin) return const _BlockedScreen();
             if (me == null && user.isAnonymous) {
               // Misafir kaydı yazılıyor.
-              return Scaffold(backgroundColor: AppColors.inkDeep, body: PatternBackground(opacity: 0.05, child: SizedBox.expand()));
+              return const _Bekleme('Misafir kaydı yazılıyor');
             }
             if (me == null || me.gender.isEmpty) {
               return CompleteProfileScreen(uid: user.uid, suggestedName: user.displayName ?? '');
@@ -102,4 +102,43 @@ class _BlockedScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Bekleme ekranı: birkaç saniye geçince neyin beklendiğini yazar (boş ekranda kalınmasın).
+class _Bekleme extends StatefulWidget {
+  const _Bekleme(this.ne);
+  final String ne;
+  @override
+  State<_Bekleme> createState() => _BeklemeState();
+}
+
+class _BeklemeState extends State<_Bekleme> {
+  bool _uzun = false;
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 6), () {
+      if (mounted) setState(() => _uzun = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: AppColors.inkDeep,
+        body: PatternBackground(
+          opacity: 0.05,
+          child: Center(
+            child: _uzun
+                ? Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text('${widget.ne}…', textAlign: TextAlign.center, style: AppText.body(14, color: AppColors.muted)),
+                    ]),
+                  )
+                : const SizedBox.expand(),
+          ),
+        ),
+      );
 }
