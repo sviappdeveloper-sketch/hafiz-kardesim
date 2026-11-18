@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -28,6 +29,24 @@ class Ses {
   static void Function(String metin)? _canli;
   static void Function(String hata)? _hata;
   static final acik = ValueNotifier<bool>(false);
+  /// Mikrofona gelen sesin şiddeti (0–1): dinleme dalgası bununla oynar.
+  static final seviye = ValueNotifier<double>(0);
+
+  /// Android'in ses tanıması her yeniden açılışta "bip" çalar; dinleme süresince medya sesi kısılır.
+  static const _kanal = MethodChannel('hafiz/ses');
+  static Timer? _acT;
+  static Future<void> _bip(bool sustur) async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await _kanal.invokeMethod(sustur ? 'sustur' : 'ac');
+    } catch (_) {}
+  }
+
+  static void _seviye(double l) {
+    // Android'de yaklaşık -2…10 arası gelir.
+    final v = ((l + 2) / 12).clamp(0.0, 1.0);
+    seviye.value = seviye.value * .5 + v * .5;
+  }
 
   static String get dil => SettingsService.prefs.getString('hfDil') ?? 'ar_SA';
   static Future<void> setDil(String v) => SettingsService.prefs.setString('hfDil', v);
@@ -89,9 +108,12 @@ class Ses {
       _sonucsuz = 0;
     }
     _buOturumdaSonuc = false;
+    _acT?.cancel();
+    await _bip(true);
     try {
       await _s.listen(
         onResult: _sonuc,
+        onSoundLevelChange: _seviye,
         localeId: dil,
         listenFor: const Duration(minutes: 2),
         pauseFor: const Duration(seconds: 6),
@@ -219,9 +241,15 @@ class Ses {
     _canli = null;
     _t?.cancel();
     acik.value = false;
+    seviye.value = 0;
     try {
       await _s.stop();
     } catch (_) {}
+    // Durma bip'i de duyulmasın: ses biraz sonra geri açılır.
+    _acT?.cancel();
+    _acT = Timer(const Duration(milliseconds: 700), () {
+      if (!_istek) _bip(false);
+    });
   }
 
   static String hataMetni(String k) => switch (k) {

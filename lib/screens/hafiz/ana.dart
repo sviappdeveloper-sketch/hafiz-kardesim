@@ -620,6 +620,7 @@ class _HafizAyarEkraniState extends State<HafizAyarEkrani> {
               const SizedBox(height: 6),
               const GizlemeSecici(),
               const BeyazSayfaAnahtari(),
+              const MushafSayfaAnahtari(),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: HfAyar.besmele,

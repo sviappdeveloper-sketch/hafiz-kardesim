@@ -285,6 +285,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
               const SizedBox(height: 8),
               GizlemeSecici(onChanged: (_) => _yenile()),
               BeyazSayfaAnahtari(onChanged: _yenile),
+              MushafSayfaAnahtari(onChanged: _yenile),
               const SizedBox(height: 14),
               Text('Yazı tipi', style: AppText.body(15)),
               const SizedBox(height: 6),
@@ -379,7 +380,10 @@ class _OkuEkraniState extends State<OkuEkrani> {
                   Row(children: [
                     kucuk(Icons.lightbulb_outline, 'İpucu', () => _isaretle(KD.ipucu)),
                     kucuk(Icons.menu_book_outlined, 'Ayeti aç', _ayetiAc),
-                    GestureDetector(
+                    DinlemeDalgasi(
+                      acik: Ses.acik.value,
+                      renk: Ses.acik.value ? AppColors.danger : AppColors.gold,
+                      child: GestureDetector(
                       onTap: _mikrofon,
                       child: Container(
                         width: 70,
@@ -392,6 +396,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
                         ),
                         child: Icon(Ses.acik.value ? Icons.stop_rounded : Icons.mic_rounded, size: 34, color: AppColors.inkDeep),
                       ),
+                    ),
                     ),
                     kucuk(Icons.check_circle_outline, 'Doğru say', () => _isaretle(KD.dogru)),
                     kucuk(Icons.undo, 'Geri al', _geriAl),
@@ -445,3 +450,94 @@ Widget _buyuk(String t, Color c, VoidCallback f) => SizedBox(
 /// Dışarıdan çağrılan kısa yollar.
 void ezberAc(BuildContext context, List<int> ayetler, String mod) =>
     Navigator.push(context, MaterialPageRoute(builder: (_) => OkuEkrani(ayetler: ayetler, mod: mod)));
+
+/// Tarteel tarzı dinleme dalgası: mikrofon açıkken düğmenin çevresinde sesle büyüyen halkalar.
+class DinlemeDalgasi extends StatefulWidget {
+  const DinlemeDalgasi({super.key, required this.acik, required this.renk, required this.child});
+  final bool acik;
+  final Color renk;
+  final Widget child;
+  @override
+  State<DinlemeDalgasi> createState() => _DinlemeDalgasiState();
+}
+
+class _DinlemeDalgasiState extends State<DinlemeDalgasi> with SingleTickerProviderStateMixin {
+  late final _a = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+  double _s = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.acik) _a.repeat();
+  }
+
+  @override
+  void didUpdateWidget(DinlemeDalgasi old) {
+    super.didUpdateWidget(old);
+    if (widget.acik && !_a.isAnimating) _a.repeat();
+    if (!widget.acik && _a.isAnimating) {
+      _a.stop();
+      _a.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 104,
+        height: 92,
+        child: Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
+          if (widget.acik)
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_a, Ses.seviye]),
+                builder: (_, __) {
+                  // Ses şiddeti yumuşatılır: halkalar titremeden büyüyüp küçülür.
+                  _s = _s * .8 + Ses.seviye.value * .2;
+                  return CustomPaint(painter: _DalgaBoyasi(_a.value, _s, widget.renk));
+                },
+              ),
+            ),
+          widget.child,
+        ]),
+      );
+}
+
+class _DalgaBoyasi extends CustomPainter {
+  _DalgaBoyasi(this.t, this.s, this.renk);
+  final double t, s;
+  final Color renk;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final m = size.center(Offset.zero);
+    const r0 = 35.0;
+    // Sesle büyüyen yumuşak ışık.
+    canvas.drawCircle(
+        m,
+        r0 + 4 + 14 * s,
+        Paint()
+          ..color = renk.withValues(alpha: .10 + .18 * s)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+    // Dışa doğru yayılan üç halka.
+    for (var k = 0; k < 3; k++) {
+      final f = (t + k / 3) % 1.0;
+      final r = r0 + f * (8 + 16 * s);
+      canvas.drawCircle(
+          m,
+          r,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = renk.withValues(alpha: (1 - f) * (.25 + .5 * s)));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DalgaBoyasi o) => o.t != t || o.s != s || o.renk != renk;
+}

@@ -1,6 +1,8 @@
 package com.hatimkardesim.hatim_kardesim
 
 import android.content.Context
+import android.media.AudioManager
+import android.os.Bundle
 import android.hardware.GeomagneticField
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -46,8 +48,60 @@ import kotlin.math.hypot
  * Olay: [yön (derece), doğruluk (0-3), sapma (derece), kaynak ("google"/"sensor"), hata payı (derece)]
  */
 class MainActivity : FlutterActivity() {
+    // Ezber Oku: Android ses tanıması her yeniden başlayışta "bip" çalar (telefonun medya sesinden).
+    // Dinleme süresince medya sesi kısılır, bitince eski hâline döner. Uygulama beklenmedik
+    // kapanırsa bir sonraki açılışta ses mutlaka geri açılır (kısılan akış kaydedilir).
+    private val bipAkisi = AudioManager.STREAM_MUSIC
+    private var susturuldu = false
+
+    private fun sesKayit() = getSharedPreferences("hk_ses", Context.MODE_PRIVATE)
+
+    private fun bipSustur() {
+        if (Build.VERSION.SDK_INT < 23 || susturuldu) return
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            if (am.isStreamMute(bipAkisi)) return
+            sesKayit().edit().putBoolean("kisik", true).commit()
+            am.adjustStreamVolume(bipAkisi, AudioManager.ADJUST_MUTE, 0)
+            susturuldu = true
+        } catch (_: Throwable) {}
+    }
+
+    private fun bipAc() {
+        if (Build.VERSION.SDK_INT < 23) return
+        if (!susturuldu && !sesKayit().getBoolean("kisik", false)) return
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            am.adjustStreamVolume(bipAkisi, AudioManager.ADJUST_UNMUTE, 0)
+        } catch (_: Throwable) {}
+        susturuldu = false
+        try { sesKayit().edit().remove("kisik").commit() } catch (_: Throwable) {}
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        bipAc() // önceki oturum kısık kaldıysa geri aç
+    }
+
+    override fun onPause() {
+        bipAc() // uygulamadan çıkılınca telefonun sesi kısık kalmasın
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        bipAc()
+        super.onDestroy()
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "hafiz/ses").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "sustur" -> { bipSustur(); result.success(true) }
+                "ac" -> { bipAc(); result.success(true) }
+                else -> result.notImplemented()
+            }
+        }
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, "hatim/kible")
             .setStreamHandler(KibleStream(applicationContext, this))
         // Pil kısıtlaması: ekran kapalıyken ezan bildiriminin zamanında gelmesi için.
