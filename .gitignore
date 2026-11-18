@@ -10,3 +10,5 @@ build/
 .flutter-plugins*
 *.iml
 .idea/
+assets/asr/model.int8.onnx
+assets/asr/tokens.txt

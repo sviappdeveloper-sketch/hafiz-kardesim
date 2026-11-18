@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../hafiz/arapca.dart';
 import '../../hafiz/kayit.dart';
+import '../../hafiz/kulak.dart';
 import '../../hafiz/kuran.dart';
 import '../../hafiz/ses.dart';
 import '../../hafiz/yedek.dart';
@@ -82,7 +83,11 @@ class _OkuEkraniState extends State<OkuEkrani> {
   @override
   void dispose() {
     Ses.acik.removeListener(_yenile);
-    Ses.durdur(bosalt: false);
+    if (_kulak) {
+      Kulak.durdur();
+    } else {
+      Ses.durdur(bosalt: false);
+    }
     _duyulan.dispose();
     super.dispose();
   }
@@ -110,16 +115,48 @@ class _OkuEkraniState extends State<OkuEkrani> {
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) => _kaydir());
     if (_e.bitti && !_bitti) {
-      Ses.durdur();
+      _kulak ? Kulak.durdur() : Ses.durdur();
       Future.delayed(const Duration(milliseconds: 600), _bitir);
     }
   }
 
+  /// Kendi ses tanımamız (Kulak) kullanılıyor mu; model açılamazsa telefonun ses tanımasına dönülür.
+  bool _kulak = false;
+
   Future<void> _mikrofon() async {
     if (Ses.acik.value) {
-      await Ses.durdur();
+      if (_kulak) {
+        await Kulak.durdur();
+      } else {
+        await Ses.durdur();
+      }
       return;
     }
+    if (Kulak.kullanilabilir) {
+      final ok = await Kulak.baslat(
+        sonuc: (kelimeler, kesin) {
+          if (!mounted) return;
+          final once = _e.cur;
+          final yeni = _e.bolum(kelimeler, kesin: kesin);
+          for (final i in yeni) {
+            _gecmis.add((i, KD.gizli, once));
+          }
+          _duyulan.value = kelimeler.reversed.take(8).toList().reversed.join(' ');
+          if (yeni.isNotEmpty || _e.cur != once || kesin) _sonra();
+        },
+        hata: (h) {
+          if (mounted) showSnack(context, Ses.hataMetni(h));
+        },
+      );
+      if (ok) {
+        _kulak = true;
+        if (mounted) showSnack(context, 'Dinliyorum… okumaya başla');
+        return;
+      }
+      if (!Kulak.kullanilabilir) _kulak = false;
+      if (Ses.acik.value) return;
+    }
+    _kulak = false;
     final ok = await Ses.baslat(
       kelime: (k) {
         if (!mounted) return;
@@ -154,6 +191,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
 
   void _isaretle(int st) {
     if (_e.bitti) return;
+    if (_kulak) Kulak.yeniBolum();
     final i = _e.cur;
     _gecmis.add((i, _w[i].st, i));
     _w[i].st = st;
@@ -164,6 +202,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
 
   void _ayetiAc({bool dogru = false}) {
     if (_e.bitti) return;
+    if (_kulak) Kulak.yeniBolum();
     final li = _w[_e.cur].li;
     while (!_e.bitti && _w[_e.cur].li == li) {
       _gecmis.add((_e.cur, _w[_e.cur].st, _e.cur));
@@ -176,6 +215,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
 
   void _geriAl() {
     if (_gecmis.isEmpty) return;
+    if (_kulak) Kulak.yeniBolum();
     final g = _gecmis.removeLast();
     _w[g.$1].st = g.$2;
     _e.cur = g.$3;
@@ -234,7 +274,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
 
   void _bitir() {
     if (_bitti || !mounted) return;
-    Ses.durdur(); // bekleyen son kelime de işlenir
+    _kulak ? Kulak.durdur() : Ses.durdur(); // bekleyen son kelime de işlenir
     // %10 lafız toleransı: son ayet büyük ölçüde doğru okunduysa kalanı doğru sayılır.
     _e.bitisToleransi();
     if (!_w.any((k) => k.st != KD.gizli)) {

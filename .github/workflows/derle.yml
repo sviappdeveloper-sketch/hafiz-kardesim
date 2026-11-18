@@ -37,6 +37,9 @@ jobs:
       - name: Platform dosyalarını oluştur
         run: flutter create --org com.sviapp --project-name hafiz_kardesim --platforms android,ios . 2>&1 | tail -5
 
+      - name: Ses tanıma modeli (Kulak)
+        run: bash tool/model_indir.sh
+
       - name: Paketler
         run: flutter pub get 2>&1 | tee /tmp/pub.txt
 

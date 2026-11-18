@@ -285,6 +285,7 @@ class Ses {
 
   static String hataMetni(String k) => switch (k) {
         'izin' => 'Mikrofon izni gerekiyor. Telefon ayarlarından izin verebilirsin.',
+        'kayit' => 'Mikrofon açılamadı. Başka bir uygulama mikrofonu kullanıyor olabilir.',
         'ag' => 'Ses tanıma için internet bağlantısı gerekiyor.',
         'dil' => 'Telefonda Arapça ses tanıma yok. Google uygulaması › Ayarlar › Ses bölümünden Arapça ekleyebilirsin.',
         'yok' => 'Bu telefonda ses tanıma hizmeti bulunamadı. Düğmelerle devam edebilirsin.',

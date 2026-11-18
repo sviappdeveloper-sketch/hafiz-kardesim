@@ -233,4 +233,72 @@ void main() {
     expect(e.cur, 3);
     expect(w.skip(3).every((k) => k.st == KD.gizli), isTrue);
   });
+
+  // ───── Kulak (kendi ses tanımamız): bölüm hizalama ─────
+  List<String> _k(String m) => m.split(' ');
+
+  test('Kulak: söylenmekte olan yarım kelime açılmaz, kelime bitince açılır', () {
+    final w = _w(bakara1_6);
+    final e = Eslestirici(w);
+    e.bolum(_k('الم ذلك الكتاب لا ريب في'), kesin: false);
+    expect(e.cur, 5);
+    expect(w[5].st, KD.gizli);
+    e.bolum(_k('الم ذلك الكتاب لا ريب فيه هدى'), kesin: false);
+    expect(e.cur, 7);
+    expect(_durum(w).substring(0, 7), 'OOOOOOO');
+  });
+
+  test('Kulak: bölümler art arda okununca hepsi doğru', () {
+    final w = _w(bakara1_6);
+    final e = Eslestirici(w);
+    e.bolum(_k('بسم الله الرحمن الرحيم الم ذلك الكتب لا ريب فيه هدى للمتقين'), kesin: true);
+    expect(e.cur, 8);
+    e.bolum(_k('الذين يؤمنون بالغيب'), kesin: false);
+    e.bolum(_k('الذين يؤمنون بالغيب ويقيمون الصلوة ومما رزقنهم ينفقون'), kesin: true);
+    expect(e.cur, 16);
+    expect(w.take(16).every((k) => k.st == KD.dogru), isTrue);
+  });
+
+  test('Kulak: gürültü okunmamış yeri açmaz', () {
+    final w = _w(bakara1_6);
+    final e = Eslestirici(w);
+    e.bolum(_k('سلام عليكم ورحمه'), kesin: true);
+    expect(e.cur, 0);
+    e.bolum(_k('الم ذلك الكتاب سلام عليكم ورحمه الله'), kesin: true);
+    expect(e.cur, 3);
+    expect(w.skip(3).every((k) => k.st == KD.gizli), isTrue);
+  });
+
+  test('Kulak: geride kalan kısım, sonraki cümle söylenince tamamlanır', () {
+    final w = _w(bakara1_6);
+    final e = Eslestirici(w);
+    e.bolum(_k('الم ذلك الكتاب لا ريب فيه هدى للمتقين الذين يؤمنون بالغيب ويقيمون الصلوة ومما رزقنهم ينفقون'), kesin: true);
+    e.bolum(_k('والذين يؤمنون بما انزل اليك وما انزل من قبلك'), kesin: true);
+    // 4. ayetin sonu ve 5. ayet duyulmadı; okuyucu 6. ayete geçti.
+    e.bolum(_k('ان الذين كفروا سواء'), kesin: false);
+    final kafaruu = w.indexWhere((k) => k.n == 'كفروا');
+    expect(e.cur, kafaruu + 2);
+    expect(w.take(kafaruu + 2).every((k) => k.st == KD.dogru), isTrue);
+  });
+
+  test('Kulak: kaçırılanları yanlış duyulan sözler arasından da bulur', () {
+    final w = _w(bakara1_6);
+    final e = Eslestirici(w);
+    final bas = w.indexWhere((k) => k.n == 'والذين');
+    e.cur = bas;
+    e.sifirlaTampon();
+    e.bolum(_k('والذين يؤمنون بما انزل اليك وما انزل من قبلك قبلها يوم ان الذين كفروا'), kesin: false);
+    final kafaruu = w.indexWhere((k) => k.n == 'كفروا');
+    expect(e.cur, kafaruu + 1);
+  });
+
+  test('Kulak: yanlış okunan kelime hatalı işaretlenir', () {
+    final w = _w(bakara1_6);
+    final e = Eslestirici(w);
+    final bas = w.indexWhere((k) => k.n == 'الذين');
+    e.cur = bas;
+    e.sifirlaTampon();
+    e.bolum(_k('الذين يؤمنون بالغيب ويقيمون الزكاه ومما رزقناهم'), kesin: true);
+    expect(_durum(w).substring(bas, bas + 7), 'OOOOEOO');
+  });
 }

@@ -22,6 +22,8 @@ workflows:
     scripts:
       - name: Platform dosyalarını oluştur
         script: flutter create --org com.sviapp --project-name hafiz_kardesim --platforms android,ios .
+      - name: Ses tanıma modeli (Kulak)
+        script: bash tool/model_indir.sh
       - name: Paketler
         script: flutter pub get
       - name: iOS'u yayına hazırla (ad, mikrofon/konuşma izinleri, Apple ile Giriş)

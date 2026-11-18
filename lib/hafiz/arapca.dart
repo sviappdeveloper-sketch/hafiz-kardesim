@@ -373,7 +373,233 @@ class Eslestirici {
     _buf = '';
     _bek.clear();
     _bekHam.clear();
+    _kok = cur;
   }
+
+  // ───────────── Kendi ses tanımamız (Kulak) için: bölüm hizalama ─────────────
+
+  /// Dinlenen ses bölümünün başladığı kelime. Bölüm boyunca her çözümde duyulanların tamamı
+  /// buradan itibaren metne yeniden hizalanır; bölüm bitince (nefes / durak) buraya [cur] yazılır.
+  int _kok = 0;
+
+  /// Bölümün o ana kadar duyulan kelimelerini ([duyulan], baştan sona) metne hizalar.
+  ///
+  /// * Okunmamış yer açılmaz: yalnızca güvenle eşleşen son kelimeye kadar ilerlenir.
+  ///   Henüz söylenmekte olan son kelime ([kesin] değilse) ancak çok benzerse sayılır.
+  /// * Son söylenene odaklanılır: geride duyulmadan kalan kelimeler, sonrası duyulunca tamamlanır
+  ///   (kısa boşluk doğru sayılır, uzun bir atlama "atlandı" olur).
+  /// * Bölüm içindeki kelimelerin durumu her çözümde yeniden değerlendirilir, böylece ses tanıma
+  ///   sonradan düzeltirse ekrandaki işaret de düzelir.
+  ///
+  /// Yeni açılan (önceden gizli olan) kelimelerin dizinleri döner.
+  List<int> bolum(List<String> duyulan, {required bool kesin}) {
+    final yeni = <int>[];
+    if (_kok > cur) _kok = cur;
+    final h = _hazirla(duyulan);
+    if (h.isEmpty || _kok >= w.length) {
+      if (kesin) _kok = cur;
+      return yeni;
+    }
+    final yol = hizalaBolum(h, w, _kok, sonKesin: kesin);
+    if (yol.son > _kok) {
+      for (var i = _kok; i < yol.son; i++) {
+        final st = yol.durum[i - _kok];
+        final k = w[i];
+        if (k.st == KD.ipucu) continue;
+        if (k.st == KD.gizli) yeni.add(i);
+        k.st = st;
+        k.h = yol.duyulan[i - _kok];
+      }
+      if (yol.son > cur) cur = yol.son;
+      // Bölümde yeniden değerlendirilen ayetlere de lafız toleransı yeniden uygulanır.
+      for (var i = _kok; i < cur && i < w.length; i++) {
+        if (w[i].end) lafizToleransi(w, w[i].li);
+      }
+    }
+    if (kesin) {
+      _kok = cur;
+      _buf = '';
+      _bek.clear();
+      _bekHam.clear();
+    }
+    return yeni;
+  }
+
+  /// Duyulanları normalleştirir; art arda harf adlarını (الف لام ميم) tek kelimeye toplar.
+  List<String> _hazirla(List<String> d) {
+    final h = <String>[];
+    final ham = [for (final x in d) nrm(x)]..removeWhere((x) => x.isEmpty);
+    var i = 0;
+    while (i < ham.length) {
+      if (harfAdlari.contains(ham[i])) {
+        var j = i;
+        while (j < ham.length && harfAdlari.contains(ham[j])) {
+          j++;
+        }
+        if (j - i >= 2) {
+          // Yakındaki mukattaa kelimesine çevrilir.
+          final m = w.skip(_kok).take(12).where((k) => k.muq).firstOrNull;
+          if (m != null) {
+            h.add(m.n);
+            i = j;
+            continue;
+          }
+        }
+      }
+      h.add(ham[i]);
+      i++;
+    }
+    return h;
+  }
+}
+
+/// Bölüm hizalamasının sonucu: [son] kelimeye kadar (hariç) açılır; [durum] ve [duyulan]
+/// kökten itibaren her kelimenin durumu ve karşısında duyulan.
+class BolumYolu {
+  BolumYolu(this.son, this.durum, this.duyulan);
+  final int son;
+  final List<int> durum;
+  final List<String> duyulan;
+}
+
+/// Duyulan kelimeleri ([h], normalize) [kok]'ten başlayan metne hizalar (düzenleme uzaklığı).
+/// Okuyucunun atladığı yerler ucuz, uydurulan kelimeler pahalıdır; sonda kalan metin bedavadır.
+BolumYolu hizalaBolum(List<String> h, List<Kelime> w, int kok, {required bool sonKesin}) {
+  final n = h.length;
+  final l = math.min(w.length - kok, n * 2 + 40);
+  const ekle = 1.0, silBas = .3, sil = .55;
+  // Bölüm başında (sure başı) okunan eûzü-besmele neredeyse bedava atlanır.
+  final girisSerbest = kok == 0 || w[kok].sureBasi;
+  double degis(int i, int j) {
+    final s = sim(h[i], w[kok + j]);
+    if (s >= .75) return (1 - s) * .5;
+    if (s >= .45) return .9;
+    return 1.4;
+  }
+
+  final d = List.generate(n + 1, (_) => List<double>.filled(l + 1, 0));
+  final g = List.generate(n + 1, (_) => List<int>.filled(l + 1, 0)); // 0 köşegen, 1 ekle, 2 sil
+  // Hiçbir şey duyulmadan önceki atlama (okuyucu ileriden başladı) daha ucuz.
+  for (var j = 1; j <= l; j++) {
+    d[0][j] = j * silBas;
+    g[0][j] = 2;
+  }
+  var girisBitti = !girisSerbest;
+  for (var i = 1; i <= n; i++) {
+    if (!girisKelimeleri.contains(h[i - 1])) girisBitti = true;
+    final ek = girisBitti ? ekle : .1;
+    d[i][0] = d[i - 1][0] + ek;
+    g[i][0] = 1;
+    for (var j = 1; j <= l; j++) {
+      var en = d[i - 1][j - 1] + degis(i - 1, j - 1), yon = 0;
+      final a = d[i - 1][j] + ek;
+      if (a < en) {
+        en = a;
+        yon = 1;
+      }
+      final b = d[i][j - 1] + sil;
+      if (b < en) {
+        en = b;
+        yon = 2;
+      }
+      d[i][j] = en;
+      g[i][j] = yon;
+    }
+  }
+  // Sonda kalan metin bedava: en düşük maliyetli bitiş (eşitlikte en yakın).
+  var bj = 0;
+  for (var j = 1; j <= l; j++) {
+    if (d[n][j] < d[n][bj] - 1e-9) bj = j;
+  }
+  // Yolu geri izle.
+  final esle = List<int>.filled(l, -1); // metin kelimesi → duyulan dizini
+  var i = n, j = bj;
+  while (i > 0 || j > 0) {
+    final y = i == 0 ? 2 : (j == 0 ? 1 : g[i][j]);
+    if (y == 0) {
+      esle[j - 1] = i - 1;
+      i--;
+      j--;
+    } else if (y == 1) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+  // Güvenle eşleşen son kelime: açılacak yerin sonu. Söylenmekte olan son kelime daha sıkı.
+  var son = 0;
+  for (var k = 0; k < bj; k++) {
+    final hi = esle[k];
+    if (hi < 0) continue;
+    final s = sim(h[hi], w[kok + k]);
+    final esik = (!sonKesin && hi == n - 1) ? .85 : .75;
+    if (s >= esik) son = k + 1;
+  }
+  // Son söylenene odaklan: duyulanların sonu hâlâ yerleşmediyse (ör. ses tanıma bir ayeti
+  // kaçırdı, okuyucu ilerledi) son 2–3 duyulan kelime ileride art arda aranır ve oraya atlanır.
+  var sonHi = -1;
+  for (var k = 0; k < son; k++) {
+    if (esle[k] > sonHi) sonHi = esle[k];
+  }
+  final kalanDuyulan = n - 1 - sonHi;
+  int? atlaBas, atlaSon;
+  for (final kac in const [3, 2]) {
+    if (kalanDuyulan < 2 || kalanDuyulan < kac || atlaBas != null) continue;
+    final sinir = math.min(w.length - kok, son + (kac == 2 ? 40 : 80));
+    for (var p = son + kac - 1; p < sinir; p++) {
+      var uyar = true, uzunluk = 0;
+      for (var m = 0; m < kac; m++) {
+        final hi = n - 1 - m;
+        final esik = (!sonKesin && hi == n - 1) ? .85 : .8;
+        if (h[hi].length < 2 || sim(h[hi], w[kok + p - m]) < esik) {
+          uyar = false;
+          break;
+        }
+        uzunluk += w[kok + p - m].n.length;
+      }
+      if (uyar && uzunluk >= (kac == 2 ? 7 : 9)) {
+        atlaBas = p - kac + 1;
+        atlaSon = p + 1;
+        break;
+      }
+    }
+  }
+  final toplam = atlaSon ?? son;
+  final durum = List<int>.filled(toplam, KD.dogru);
+  final duyulan = List<String>.filled(toplam, '');
+  var k = 0;
+  while (k < son) {
+    final hi = esle[k];
+    if (hi >= 0) {
+      final s = sim(h[hi], w[kok + k]);
+      duyulan[k] = h[hi];
+      durum[k] = s >= .75 ? KD.dogru : KD.hata;
+      k++;
+      continue;
+    }
+    // Duyulmayan kelimeler: kısa boşluk ses tanımanın kaçırmasıdır, tamamlanır; uzunsa atlanmıştır.
+    // Bölümün başındaki boşluk (önceki bölümden geride kalan) bir ayet kadarsa tamamlanır.
+    var e = k;
+    while (e < son && esle[e] < 0) {
+      e++;
+    }
+    final st = e - k <= (k == 0 ? 15 : 6) ? KD.dogru : KD.atla;
+    for (var z = k; z < e; z++) {
+      durum[z] = st;
+    }
+    k = e;
+  }
+  if (atlaBas != null && atlaSon != null) {
+    // Aradaki kısım: bir ayet kadarsa ses tanımanın kaçırdığı sayılır (tamamlanır), daha uzunsa atlanmıştır.
+    final a = atlaBas, b = atlaSon;
+    for (var z = son; z < a; z++) {
+      durum[z] = a - son <= 15 ? KD.dogru : KD.atla;
+    }
+    for (var m = 0; m < b - a; m++) {
+      duyulan[a + m] = h[n - (b - a) + m];
+    }
+  }
+  return BolumYolu(kok + toplam, durum, duyulan);
 }
 
 /// İki normalize yazımın benzerliği (iskelet karşılaştırması dahil).
