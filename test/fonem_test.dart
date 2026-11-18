@@ -119,6 +119,39 @@ void main() {
     expect('E'.allMatches(d).length + 'K'.allMatches(d).length <= 1, isTrue, reason: d);
     expect(e.bitti, isTrue, reason: d);
   }, skip: !veriVar);
+
+  test('Ayet tekrar edilince ileri atlanmaz; tekrarla hata düzelir', () {
+    final w = oturum(Kuran.aralik(0, 6));
+    final e = Eslestirici(w);
+    for (var ai = 0; ai <= 2; ai++) {
+      oku(e, w, _ses(ai));
+    }
+    final n3 = _ham[0].length + _ham[1].length + _ham[2].length;
+    // Aynı ayeti yeniden okumak yeni yer açmaz.
+    oku(e, w, _ses(2));
+    expect(e.cur, n3, reason: _durum(w));
+    // Tekrar edip devam etmek: kaldığı yerden sürer.
+    oku(e, w, _ses(2) + _ses(3));
+    expect(e.cur, n3 + _ham[3].length, reason: _durum(w));
+    // 5. ayette ikinci kelime yanlış okunur, sonra ayet doğru tekrar edilir: hata silinir.
+    final b5 = e.cur;
+    oku(e, w, _ham[4][0] + 'قَالُوا' + _ham[4].sublist(2).join());
+    expect(w[b5 + 1].st, KD.hata, reason: _durum(w));
+    oku(e, w, _ses(4));
+    expect(w[b5 + 1].st, KD.dogru, reason: _durum(w));
+    oku(e, w, _ses(5));
+    expect(_durum(w).substring(0, e.cur), 'O' * e.cur);
+  }, skip: !veriVar);
+
+  test('Başka bir yerden okunan ayet okunmamış yeri açmaz', () {
+    final b = Kuran.ix(2, 1);
+    final w = oturum(Kuran.aralik(b, b + 4));
+    final e = Eslestirici(w);
+    oku(e, w, _ses(b));
+    final c = e.cur;
+    oku(e, w, _ses(Kuran.ix(1, 2))); // Fâtiha 2 okunuyor
+    expect(e.cur, c, reason: _durum(w));
+  }, skip: !veriVar);
 }
 
 int _gecilen(int ai, int i) {

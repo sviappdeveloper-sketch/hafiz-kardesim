@@ -99,6 +99,14 @@ extension FonemEslestir on Eslestirici {
       return yeni;
     }
     final y = fonemHizala(r, w, fKok, kesin: kesin);
+    // Tekrar edilerek doğru okunan geri kelimeler: hatası düzelir.
+    for (final i in y.duzelt) {
+      final k = w[i];
+      if (k.st == KD.hata || k.st == KD.atla) {
+        k.st = KD.dogru;
+        fDuzelen++;
+      }
+    }
     if (y.son > fKok) {
       for (var i = fKok; i < y.son; i++) {
         final k = w[i];
@@ -126,27 +134,43 @@ extension FonemEslestir on Eslestirici {
 }
 
 class FonemYolu {
-  FonemYolu(this.son, this.durum, this.duyulan, this.sabitKelime, this.sabitR);
+  FonemYolu(this.son, this.durum, this.duyulan, this.sabitKelime, this.sabitR, this.duzelt);
   /// Bu kelimeye kadar (hariç) açılır.
   final int son;
   final List<int> durum;
   final List<String> duyulan;
   /// Uzun bölümde kesinleşen kısım: bu kelimeden ve duyulanın bu harfinden devam edilebilir (0: yok).
   final int sabitKelime, sabitR;
+  /// Geride (zaten açılmış) olup okuyucunun tekrar ederek doğru okuduğu kelimeler: hatası düzelir.
+  final List<int> duzelt;
 }
+
+/// Geri bağlam: kökten önceki (okunmuş) ~160 ses. Okuyucu ayeti tekrar edince ya da geri dönüp
+/// hatasını düzeltince ses buraya oturur; yeni (okunmamış) bir yer okunuyor sanılmaz.
+const _geriSes = 160;
 
 /// Duyulan sade fonemleri ([r]) [kok] kelimesinden başlayan metne hizalar (düzenleme uzaklığı).
 FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) {
-  // Hedef metin: kökten itibaren kelimelerin fonemleri art arda (sınırdaki aynı ses teke iner).
   final n = r.length;
-  final hedefUzun = n * 2 + 140;
-  final t = StringBuffer();
-  final kBas = <int>[], kSon = <int>[];
-  var sonHarf = -1;
-  for (var i = kok; i < w.length && t.length < hedefUzun && i - kok < 300; i++) {
+  // Hedef metin: geri bağlam + kökten itibaren kelimelerin fonemleri (sınırdaki aynı ses teke iner).
+  String fon(int i) {
     var f = w[i].f;
     if (f.isEmpty) f = w[i].f = Fonem.kelime(w[i].ai, w[i].wi);
     if (f.isEmpty) f = w[i].n; // fonem yoksa (olmamalı) harfli yazım
+    return f;
+  }
+
+  var g0 = kok, geri = 0;
+  while (g0 > 0 && geri + fon(g0 - 1).length <= _geriSes) {
+    g0--;
+    geri += fon(g0).length;
+  }
+  final t = StringBuffer();
+  final kBas = <int>[], kSon = <int>[];
+  var sonHarf = -1;
+  for (var i = g0; i < w.length && i - kok < 300; i++) {
+    if (i >= kok && t.length >= geri + n * 2 + 140) break;
+    var f = fon(i);
     if (f.isNotEmpty && f.codeUnitAt(0) == sonHarf) f = f.substring(1);
     kBas.add(t.length);
     t.write(f);
@@ -155,16 +179,18 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) 
   }
   final ts = t.toString();
   final m = ts.length;
+  final gk = kok - g0; // geri bağlamdaki kelime sayısı
+  final gb = gk < kBas.length ? kBas[gk] : m; // kökün metindeki yeri
   final rc = r.codeUnits, tc = ts.codeUnits;
   // Sure başında (ya da oturum başında) okunan eûzü-besmele: baştaki ~70 ses neredeyse bedava.
-  final girisSerbest = kok == 0 || w[kok].sureBasi;
+  final girisSerbest = kok == 0 || (kok < w.length && w[kok].sureBasi);
   const ekle = 1.0, sil = 1.0;
   final cols = m + 1;
   final d = Float32List((n + 1) * cols);
   final g = Uint8List((n + 1) * cols); // 0 köşegen, 1 ekle (fazla duyulan), 2 sil (duyulmayan)
-  // Hiçbir şey eşleşmeden önceki atlama: okuyucu biraz ileriden başladı.
+  // Başlangıç: geri bağlamın herhangi bir yerinden bedava; kökten ileriye atlamak ise pahalı.
   for (var j = 1; j <= m; j++) {
-    d[j] = j * .3;
+    d[j] = j <= gb ? 0 : (j - gb) * .5;
     g[j] = 2;
   }
   for (var i = 1; i <= n; i++) {
@@ -219,83 +245,116 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) 
       j--;
     }
   }
-  // Kelime kelime değerlendirme.
-  final kac = kBas.length;
-  final durum = <int>[], duyulan = <String>[];
-  final oran = <double>[];
-  final duydu = <bool>[];
-  var ulasilan = 0; // tamamen geçilen kelime sayısı
-  for (var k = 0; k < kac; k++) {
-    final a = kBas[k], b = kSon[k];
-    if (b > bj) break;
-    var s = 0.0, rMin = 1 << 30, rMax = -1, ek = 0;
+  double toplam(int a, int b) {
+    var s = 0.0;
     for (var z = a; z < b; z++) {
       s += esles[z];
+    }
+    return s;
+  }
+
+  String duyulanAra(int a, int b) {
+    var rMin = 1 << 30, rMax = -1;
+    for (var z = a; z < b; z++) {
       if (karsi[z] >= 0) {
         rMin = math.min(rMin, karsi[z]);
         rMax = math.max(rMax, karsi[z]);
       }
-      ek += ekRaw[z];
     }
-    ek += ekRaw[b];
-    final uz = math.max(1, b - a);
-    oran.add(s / uz);
-    duydu.add(rMax >= 0 || ek > 0);
-    duyulan.add(rMax >= 0 ? r.substring(rMin, rMax + 1) : '');
+    return rMax >= 0 ? r.substring(rMin, rMax + 1) : '';
+  }
+
+  // Geri bağlam: tekrar edilip iyi duyulan kelimelerin hatası düzelir.
+  final duzelt = <int>[];
+  for (var k = 0; k < gk && k < kBas.length; k++) {
+    final a = kBas[k], b = kSon[k];
+    if (b > bj) break;
+    if (b > a && toplam(a, b) / (b - a) >= .75) duzelt.add(g0 + k);
+  }
+  // İleri: kökten itibaren kelime kelime değerlendirme.
+  final kac = kBas.length;
+  final durum = <int>[], duyulan = <String>[];
+  final oran = <double>[];
+  final duydu = <bool>[];
+  var ulasilan = gk; // tamamen geçilen kelimeler (metindeki sıra)
+  for (var k = gk; k < kac; k++) {
+    final a = kBas[k], b = kSon[k];
+    if (b > bj) break;
+    var ek = ekRaw[b];
+    var rVar = false;
+    for (var z = a; z < b; z++) {
+      ek += ekRaw[z];
+      if (karsi[z] >= 0) rVar = true;
+    }
+    oran.add(toplam(a, b) / math.max(1, b - a));
+    duydu.add(rVar || ek > 0);
+    duyulan.add(duyulanAra(a, b));
     ulasilan = k + 1;
   }
   // Söylenmekte olan kelime: sesleri (sondaki bir-iki ses hariç) duyulduysa açılır.
-  if (ulasilan < kac) {
+  if (ulasilan < kac && ulasilan >= gk) {
     final k = ulasilan, a = kBas[k], b = kSon[k];
     final uz = b - a;
     if (bj > a && uz > 0) {
-      var s = 0.0, rMin = 1 << 30, rMax = -1;
-      for (var z = a; z < bj; z++) {
-        s += esles[z];
-        if (karsi[z] >= 0) {
-          rMin = math.min(rMin, karsi[z]);
-          rMax = math.max(rMax, karsi[z]);
-        }
-      }
+      final s = toplam(a, bj);
+      final dy = duyulanAra(a, bj);
       // Vakıfta son hareke okunmaz; kelime biterken son ses gecikebilir.
       final pay = (uz <= 3 ? 0 : (uz <= 8 ? 1 : 2)) + (kesin ? 1 : 0);
-      if (bj >= b - pay && s / uz >= (kesin ? .6 : .72) && rMax >= 0) {
+      if (bj >= b - pay && s / uz >= (kesin ? .6 : .72) && dy.isNotEmpty) {
         oran.add(s / uz);
         duydu.add(true);
-        duyulan.add(r.substring(rMin, rMax + 1));
+        duyulan.add(dy);
         ulasilan = k + 1;
       }
     }
   }
-  for (var k = 0; k < ulasilan; k++) {
+  final u = ulasilan - gk;
+  for (var k = 0; k < u; k++) {
     durum.add(oran[k] >= .6 ? KD.dogru : (duydu[k] ? KD.hata : KD.atla));
   }
   // Duyulmayan boşluklar: tek ve kısa bir kelime ses tanımanın kaçırmasıdır (doğru), daha uzunu atlanmıştır.
   var k = 0;
-  while (k < ulasilan) {
+  while (k < u) {
     if (durum[k] != KD.atla) {
       k++;
       continue;
     }
     var e = k;
-    while (e < ulasilan && durum[e] == KD.atla) {
+    while (e < u && durum[e] == KD.atla) {
       e++;
     }
     var harf = 0;
     for (var z = k; z < e; z++) {
-      harf += kSon[z] - kBas[z];
+      harf += kSon[gk + z] - kBas[gk + z];
     }
-    if (e - k == 1 && harf <= 4 && e < ulasilan) durum[k] = KD.dogru;
+    if (e - k == 1 && harf <= 4 && e < u) durum[k] = KD.dogru;
     k = e;
+  }
+  var acik = u;
+  // Kalite bekçisi: ileride eşleşen kısım zayıfsa (ses başka bir yere ait, ör. çok gerideki bir
+  // ayet tekrar ediliyor) hiçbir şey açılmaz. İleriye atlama için daha güçlü kanıt gerekir.
+  var fs = -1;
+  for (var z = gb; z < bj; z++) {
+    if (esles[z] > 0) {
+      fs = z;
+      break;
+    }
+  }
+  if (fs < 0) {
+    acik = 0;
+  } else {
+    final mt = toplam(fs, bj);
+    final q = mt / math.max(1, bj - fs);
+    final atlama = fs - gb > 12;
+    if (q < (kesin ? .5 : .6) || (atlama && (q < .75 || mt < 12))) acik = 0;
   }
   // Temkin: ara sonuçta hatalı/atlandı görünen kelimede durulur; ardından en az iki kelime
   // sağlam duyulmadıkça karar verilmez (okuyucu cümleyi bitirince ya da devam edince verilir).
-  var acik = ulasilan;
   if (!kesin) {
-    for (var z = 0; z < ulasilan; z++) {
+    for (var z = 0; z < acik; z++) {
       if (durum[z] == KD.dogru) continue;
       var saglam = 0;
-      for (var q = z + 1; q < ulasilan && durum[q] == KD.dogru; q++) {
+      for (var q = z + 1; q < acik && durum[q] == KD.dogru; q++) {
         saglam++;
       }
       if (saglam < 2) {
@@ -309,7 +368,7 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) 
   if (!kesin && n > 160 && acik > 2) {
     for (var z = acik - 2; z >= 0; z--) {
       var rSon = -1;
-      for (var q = kBas[z]; q < kSon[z]; q++) {
+      for (var q = kBas[gk + z]; q < kSon[gk + z]; q++) {
         if (karsi[q] > rSon) rSon = karsi[q];
       }
       if (rSon >= 0 && n - (rSon + 1) >= 40) {
@@ -319,5 +378,5 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) 
       }
     }
   }
-  return FonemYolu(kok + acik, durum.sublist(0, acik), duyulan.sublist(0, acik), sabitKelime, sabitR);
+  return FonemYolu(kok + acik, durum.sublist(0, acik), duyulan.sublist(0, acik), sabitKelime, sabitR, duzelt);
 }

@@ -385,6 +385,8 @@ class Eslestirici {
 
   /// Fonem eşleştiricisinin (fonem.dart) bölüm başı kelimesi ve duyulanın işlenmiş kısmı.
   int fKok = 0, fOff = 0;
+  /// Tekrar edilerek düzeltilen (hatası silinen) kelime sayısı: ekran yenilensin diye.
+  int fDuzelen = 0;
 
   // ───────────── Kendi ses tanımamız (Kulak) için: bölüm hizalama ─────────────
 

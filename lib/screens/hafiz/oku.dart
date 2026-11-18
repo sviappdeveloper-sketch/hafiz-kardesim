@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../hafiz/arapca.dart';
 import '../../hafiz/fonem.dart';
+import '../../hafiz/hata_sesi.dart';
 import '../../hafiz/kayit.dart';
 import '../../hafiz/kulak.dart';
 import '../../hafiz/kuran.dart';
@@ -128,6 +129,8 @@ class _OkuEkraniState extends State<OkuEkrani> {
     }
   }
 
+  int get _hataSayisi => _w.where((k) => k.st == KD.hata).length;
+
   /// Kendi ses tanımamız (Kulak) kullanılıyor mu; model açılamazsa telefonun ses tanımasına dönülür.
   bool _kulak = false;
 
@@ -145,14 +148,18 @@ class _OkuEkraniState extends State<OkuEkrani> {
         sonuc: (duyulan, kesin) {
           if (!mounted) return;
           final once = _e.cur;
+          final duzOnce = _e.fDuzelen;
+          final hataOnce = _hataSayisi;
           final yeni = _e.fonem(duyulan, kesin: kesin);
+          // Yeni bir hata işaretlendiyse tok, kısık bir ses çalar.
+          if (_hataSayisi > hataOnce) HataSesi.cal();
           for (final i in yeni) {
             _gecmis.add((i, KD.gizli, once));
           }
           // Alttaki satır: son duyulan sesler.
           final d = duyulan.replaceAll(' ', '');
           _duyulan.value = d.length > 40 ? d.substring(d.length - 40) : d;
-          if (yeni.isNotEmpty || _e.cur != once || kesin) _sonra();
+          if (yeni.isNotEmpty || _e.cur != once || kesin || _e.fDuzelen != duzOnce) _sonra();
         },
         hata: (h) {
           if (mounted) showSnack(context, Ses.hataMetni(h));
@@ -420,11 +427,18 @@ class _OkuEkraniState extends State<OkuEkrani> {
                     height: 30,
                     child: ValueListenableBuilder<String>(
                       valueListenable: _duyulan,
-                      builder: (_, d, __) => Text(d,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textDirection: TextDirection.rtl,
-                          style: arapYazi(17, color: AppColors.muted).copyWith(height: 1.4)),
+                      builder: (_, d, __) => ValueListenableBuilder<double>(
+                        valueListenable: Kulak.gecikme,
+                        // Telefon modeli yetiştiremezse ne kadar geride kaldığı gösterilir.
+                        builder: (_, g, __) => g >= 1.2 && _kulak && Ses.acik.value
+                            ? Text('⏳ ${g.toStringAsFixed(1)} sn geride',
+                                maxLines: 1, style: AppText.body(13, color: AppColors.muted))
+                            : Text(d,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textDirection: TextDirection.rtl,
+                                style: arapYazi(17, color: AppColors.muted).copyWith(height: 1.4)),
+                      ),
                     ),
                   ),
                   Row(children: [

@@ -77,14 +77,14 @@ jobs:
         with:
           name: HafizKardesim-aab
           path: build/app/outputs/bundle/release/app-release.aab
-          retention-days: 30
+          retention-days: 5
           if-no-files-found: ignore
 
       - name: Dosyaları 'apk' dalına koy
         run: |
           mkdir -p /tmp/cikti
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk /tmp/cikti/HafizKardesim.apk
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk /tmp/cikti/HafizKardesim-armv7.apk || true
+          # (Depo boyutu için yalnızca 64 bit APK konur; eski 32 bit telefonlar Play Store'daki AAB'den alır.)
           # GitHub dalına 100 MB'tan büyük dosya konamaz: büyük AAB yalnızca derleme eki (artifact) olarak kalır.
           A=build/app/outputs/bundle/release/app-release.aab
           if [ -f "$A" ] && [ "$(stat -c%s "$A")" -lt 95000000 ]; then cp "$A" /tmp/cikti/HafizKardesim.aab; fi

@@ -43,6 +43,9 @@ class Kulak {
 
   /// Bu numaradan önceki bölümlere ait sonuçlar yok sayılır (elle işaretleme / geri almada).
   static int _enAzBolum = 0;
+  /// Modelin gerisinde kalan ses (saniye): telefon yetişemiyorsa ekranda gösterilir.
+  static final gecikme = ValueNotifier<double>(0);
+  static int _giden = 0;
   /// Gönderilen ve işçinin yanıtladığı son "sifirla" isteği: yanıt gelene kadar sonuçlar atılır.
   static int _istek = 0, _yanit = 0;
 
@@ -164,11 +167,17 @@ class Kulak {
     final rms = math.sqrt(kare / n);
     // Ses şiddeti: dinleme dalgası için.
     Ses.seviye.value = Ses.seviye.value * .5 + (rms * 12).clamp(0.0, 1.0) * .5;
+    _giden += n;
     _isciPort?.send(TransferableTypedData.fromList([ses]));
   }
 
   static void _cevap(dynamic m) {
     if (m is! List || m.isEmpty) return;
+    if (m[0] == 'islenen') {
+      // İşçinin çözdüğü toplam ses: gönderilenle farkı gecikmedir.
+      gecikme.value = math.max(0, (_giden - (m[1] as int)) / _hz);
+      return;
+    }
     if (m[0] == 'bolum') {
       // İşçi "sifirla" isteğini işledi: bundan önceki bölümlerin sonuçları yok sayılır.
       _enAzBolum = m[1] as int;
@@ -206,7 +215,7 @@ void _isciAna(List<dynamic> a) {
       model: so.OnlineModelConfig(
         zipformer2Ctc: so.OnlineZipformer2CtcModelConfig(model: model),
         tokens: tokens,
-        numThreads: 2,
+        numThreads: 4,
         debug: false,
       ),
       decodingMethod: 'greedy_search',
@@ -225,6 +234,7 @@ void _isciAna(List<dynamic> a) {
   hazir.send(gelen.sendPort);
   var bolum = 0;
   var onceki = '';
+  var islenen = 0, sonBildirim = 0;
   void coz({required bool son}) {
     while (tanima.isReady(akis)) {
       tanima.decode(akis);
@@ -250,8 +260,14 @@ void _isciAna(List<dynamic> a) {
   gelen.listen((m) {
     try {
       if (m is TransferableTypedData) {
-        akis.acceptWaveform(samples: m.materialize().asFloat32List(), sampleRate: 16000);
+        final ses = m.materialize().asFloat32List();
+        akis.acceptWaveform(samples: ses, sampleRate: 16000);
         coz(son: false);
+        islenen += ses.length;
+        if (islenen - sonBildirim >= 8000) {
+          sonBildirim = islenen;
+          cevap.send(['islenen', islenen]);
+        }
       } else if (m is List && m.isNotEmpty && m[0] == 'sifirla') {
         tanima.reset(akis);
         bolum++;
