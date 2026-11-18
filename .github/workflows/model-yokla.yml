@@ -14,7 +14,7 @@ jobs:
         with: { python-version: "3.11" }
       - run: pip install -q huggingface_hub onnx numpy sherpa-onnx
       - name: Deneme sesleri
-        timeout-minutes: 5 (Fâtiha 1-4, Husarî)
+        timeout-minutes: 5
         run: |
           pip install -q imageio-ffmpeg
           FF=$(python -c "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())")
