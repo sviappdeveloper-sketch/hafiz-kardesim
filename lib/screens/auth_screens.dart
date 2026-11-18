@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return _AuthScaffold(
       title: lt('Hoş geldiniz'),
-      subtitle: lt('Hatim Kardeşim ya da Hafız Kardeşim hesabınızla giriş yapın'),
+      subtitle: lt('Hesabınızla giriş yapın'),
       children: [
         TextField(
           key: const Key('login_email'),
@@ -209,7 +209,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return _AuthScaffold(
       title: lt('Aramıza katılın'),
-      subtitle: lt('Hesabınızı oluşturun, ilk cüzünüzü alın'),
+      subtitle: lt('Hesabınızı oluşturun, ezberinize başlayın'),
       showBack: true,
       children: [
         TextField(
@@ -235,7 +235,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SizedBox(height: 20),
         GenderPicker(value: _gender, onChanged: (g) => setState(() => _gender = g)),
         const SizedBox(height: 8),
-        Text(lt('Sadece hanımlar veya sadece beyler için açılan gruplara katılım bu seçime göre yapılır.'),
+        Text(lt('Hoca–öğrenci eşleşmeleri bu seçime göre yapılır: hanımlar hanımlarla, beyler beylerle çalışır.'),
             style: AppText.body(12, color: AppColors.muted)),
         const SizedBox(height: 22),
         GoldButton(label: lt('Hesabımı oluştur'), busy: _busy, onPressed: _submit),
@@ -269,7 +269,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   Widget build(BuildContext context) {
     return _AuthScaffold(
       title: lt('Profilinizi tamamlayın'),
-      subtitle: lt('Gruplara katılabilmeniz için iki bilgi eksik'),
+      subtitle: lt('Hesabınızı kullanabilmeniz için iki bilgi eksik'),
       children: [
         TextField(
           key: const Key('cp_name'),
