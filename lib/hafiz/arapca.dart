@@ -154,11 +154,9 @@ class Eslestirici {
     final x = w[cur];
     if (x.muq || _bek.isNotEmpty) return null;
     final h = nrm(raw);
-    if (h.length < 3) return null;
-    final son = cur == w.length - 1;
-    final esik = son ? .75 : .85;
+    if (h.isEmpty) return null;
     final aday = [h, if (_buf.isNotEmpty) _buf + h];
-    if (!aday.any((a) => sim(a, x) >= esik)) return null;
+    if (!aday.any((a) => _hemenUyar(a, x, cur == w.length - 1))) return null;
     final once = cur;
     final d = <int>[];
     if (x.st == KD.gizli) {
@@ -172,6 +170,15 @@ class Eslestirici {
       if (w[i].end) d.addAll(lafizToleransi(w, w[i].li));
     }
     return d;
+  }
+
+  /// Kısmi sonuçtaki kelime sıradaki kelime sayılabilir mi? Tarteel gibi, kelime söylenirken
+  /// (ses tanıma onu daha yazarken) açılsın diye: kısa kelimeler tam, uzunlar yüksek benzerlik
+  /// ya da kelimenin büyük bir baş kısmı duyulunca kabul edilir.
+  static bool _hemenUyar(String a, Kelime x, bool son) {
+    if (a.length < 3 || x.n.length < 3) return a == x.n || (a.length >= 2 && skel(a) == x.k && x.k.length >= 2);
+    if (sim(a, x) >= (son ? .72 : .78)) return true;
+    return a.length >= 3 && x.n.startsWith(a) && a.length * 10 >= x.n.length * 7;
   }
 
   /// Okuma bitince (Bitir ya da son kelime): başlanmış her ayete toleransı uygular.
@@ -331,6 +338,33 @@ class Eslestirici {
           return degisen;
         }
       }
+    }
+    // 7) Yeniden yakalama: ses tanıma bir ayeti tümden kaçırdıysa ya da yanlış duyup takıldıysa
+    // okuyucu çoktan ilerlemiştir. Daha ileride (birkaç ayet) art arda duyulan kelimeler metinde
+    // aynı sırayla bulunursa oraya atlanır; yakın yerde iki, uzakta üç kelime uyması gerekir.
+    final n = _bek.length;
+    for (var j = 7; j <= 80 && c + j < w.length; j++) {
+      final kac = j <= 30 ? 2 : 3;
+      if (n < kac) break;
+      var uyar = true, uzunluk = 0;
+      for (var m = 0; m < kac; m++) {
+        final y = w[c + j - m];
+        final hm = _bek[n - 1 - m];
+        if (hm.length < 2 || sim(hm, y) < .8) {
+          uyar = false;
+          break;
+        }
+        uzunluk += y.n.length;
+      }
+      if (!uyar || uzunluk < (kac == 2 ? 7 : 9)) continue;
+      final bas = c + j - kac + 1;
+      aradakiler(c, bas, _bekHam.sublist(0, n - kac));
+      for (var m = 0; m < kac; m++) {
+        isaret(bas + m, KD.dogru, _bekHam[n - kac + m]);
+      }
+      sifirlaTampon();
+      cur = c + j + 1;
+      return degisen;
     }
     return degisen;
   }

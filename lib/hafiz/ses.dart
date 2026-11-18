@@ -43,9 +43,30 @@ class Ses {
   }
 
   static void _seviye(double l) {
+    if (l > 4) _sonSes = DateTime.now();
     // Android'de yaklaşık -2…10 arası gelir.
     final v = ((l + 2) / 12).clamp(0.0, 1.0);
     seviye.value = seviye.value * .5 + v * .5;
+  }
+
+  /// Takılma bekçisi: kişi konuşmaya devam ettiği hâlde ses tanıma birkaç saniye yeni kelime
+  /// vermezse (yanlış duyup takıldı ya da ayeti kaçırıyor) tanıma kapatılıp hemen yeniden açılır.
+  /// Kapanırken elindeki kelimeleri kesinleştirip verir; yeni oturum da baştan dinler.
+  static DateTime _sonDegisim = DateTime.now(), _sonSes = DateTime(2000), _oturumBas = DateTime.now();
+  static String _sonMetin = '';
+  static Timer? _bekci;
+  static void _bekciKur() {
+    _bekci?.cancel();
+    _bekci = Timer.periodic(const Duration(milliseconds: 400), (_) {
+      if (!_istek || !_s.isListening) return;
+      final s = DateTime.now();
+      if (s.difference(_oturumBas).inMilliseconds < 2500) return;
+      if (s.difference(_sonDegisim).inMilliseconds < 2600) return;
+      if (s.difference(_sonSes).inMilliseconds > 700) return;
+      _sonDegisim = s;
+      debugPrint('Ses: tanıma takıldı, yeniden açılıyor');
+      _s.stop().catchError((_) {});
+    });
   }
 
   static String get dil => SettingsService.prefs.getString('hfDil') ?? 'ar_SA';
@@ -80,6 +101,7 @@ class Ses {
     _sonucsuz = 0;
     _buOturumdaSonuc = true;
     acik.value = true;
+    _bekciKur();
     await _dinle();
     return true;
   }
@@ -108,6 +130,8 @@ class Ses {
       _sonucsuz = 0;
     }
     _buOturumdaSonuc = false;
+    _sonMetin = '';
+    _sonDegisim = _oturumBas = DateTime.now();
     _acT?.cancel();
     await _bip(true);
     try {
@@ -212,6 +236,10 @@ class Ses {
 
   static void _sonuc(SpeechRecognitionResult r) {
     final metin = r.recognizedWords.trim();
+    if (metin != _sonMetin) {
+      _sonMetin = metin;
+      _sonDegisim = DateTime.now();
+    }
     if (metin.isNotEmpty) {
       _buOturumdaSonuc = true;
       _sonucsuz = 0;
@@ -242,6 +270,7 @@ class Ses {
     _dene = null;
     _canli = null;
     _t?.cancel();
+    _bekci?.cancel();
     acik.value = false;
     seviye.value = 0;
     try {

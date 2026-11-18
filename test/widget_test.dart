@@ -187,4 +187,50 @@ void main() {
     expect(w.every((k) => k.st == KD.dogru), isTrue);
     expect(e.bitti, isTrue);
   });
+
+  const bakara1_6 = [
+    'الٓمٓ',
+    'ذَٰلِكَ ٱلْكِتَٰبُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًۭى لِّلْمُتَّقِينَ',
+    'ٱلَّذِينَ يُؤْمِنُونَ بِٱلْغَيْبِ وَيُقِيمُونَ ٱلصَّلَوٰةَ وَمِمَّا رَزَقْنَٰهُمْ يُنفِقُونَ',
+    'وَٱلَّذِينَ يُؤْمِنُونَ بِمَآ أُنزِلَ إِلَيْكَ وَمَآ أُنزِلَ مِن قَبْلِكَ وَبِٱلْءَاخِرَةِ هُمْ يُوقِنُونَ',
+    'أُو۟لَٰٓئِكَ عَلَىٰ هُدًۭى مِّن رَّبِّهِمْ ۖ وَأُو۟لَٰٓئِكَ هُمُ ٱلْمُفْلِحُونَ',
+    'إِنَّ ٱلَّذِينَ كَفَرُوا۟ سَوَآءٌ عَلَيْهِمْ ءَأَنذَرْتَهُمْ أَمْ لَمْ تُنذِرْهُمْ لَا يُؤْمِنُونَ',
+  ];
+
+  test('Ses tanıma bir ayeti kaçırıp takılsa da okuyucu yeniden yakalanır (videodaki durum)', () {
+    final w = _w(bakara1_6);
+    final e = Eslestirici(w);
+    // Telefondaki kayıtta duyulanlar: "وبالآخرة هم يوقنون" "قبلها يوم" diye duyuldu, 5. ayet hiç duyulmadı.
+    const duyulan = 'الف لام ميم ذلك الكتاب لا ريب فيه هدى للمتقين الذين يؤمنون بالغيب ويقيمون الصلاه ومما رزقناهم '
+        'ينفقون والذين يؤمنون بما انزل اليك وما انزل من قبلك قبلها يوم ان الذين كفروا سواء';
+    for (final k in duyulan.split(' ')) {
+      e.besle(k);
+    }
+    final kafaruu = w.indexWhere((k) => k.n == 'كفروا');
+    expect(e.cur, kafaruu + 2, reason: 'takip "سواء" sonrasına gelmeli');
+    expect(w[kafaruu].st, KD.dogru);
+    // Takılmadan önce okunanlar doğru kalır.
+    final qablik = w.indexWhere((k) => k.n == 'قبلك');
+    expect(w.take(qablik + 1).every((k) => k.st == KD.dogru), isTrue);
+  });
+
+  test('Kelime söylenirken (yarısı duyulunca) hemen açılır', () {
+    final w = _w(bakara);
+    final e = Eslestirici(w);
+    expect(e.dene('الذين'), isNotNull);
+    expect(e.dene('يؤمنو'), isNotNull);
+    expect(e.dene('بالغ'), isNull, reason: 'çok kısa parça bekletilir');
+    expect(e.dene('بالغيب'), isNotNull);
+    expect(e.cur, 3);
+  });
+
+  test('Uzaktaki tek benzer kelime yüzünden ileri atlanmaz', () {
+    final w = _w(bakara1_6);
+    final e = Eslestirici(w);
+    for (final k in 'الف لام ميم ذلك الكتاب سلام الذين'.split(' ')) {
+      e.besle(k);
+    }
+    expect(e.cur, 3);
+    expect(w.skip(3).every((k) => k.st == KD.gizli), isTrue);
+  });
 }
