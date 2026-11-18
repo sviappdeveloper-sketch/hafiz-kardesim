@@ -283,7 +283,7 @@ class HocaEkrani extends StatelessWidget {
               );
               if (not == null || !c.mounted) return;
               final ok = await runGuarded(c, () => HocaService.odevVer(b, l, Kuran.etiketListe(l), not), success: 'Ödev gönderildi');
-              if (ok && c.mounted) Navigator.pop(c);
+              if (ok && c.mounted) secimiKapat(c);
             },
           ),
         ),

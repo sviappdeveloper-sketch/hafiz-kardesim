@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hafiz_kardesim/hafiz/arapca.dart';
+import 'package:hafiz_kardesim/hafiz/ses.dart';
 
 List<Kelime> _w(List<String> ayetler) =>
     kelimeler(List.generate(ayetler.length, (i) => i), (i) => ayetler[i], (i) => i + 1);
@@ -121,5 +122,24 @@ void main() {
     w[2].st = KD.ipucu;
     w[3].st = KD.hata;
     expect(puan(w), 63);
+  });
+
+  test('Ses tanıma önceki kelimeleri birleştirse de yeni kelime kaybolmaz', () {
+    // Gönderilen: الحمد لله رب ; tanıma "لله رب" yerine "للهرب" yazıp yeni kelimeyi ekledi.
+    final g = ['الحمد', 'لله', 'رب'];
+    expect(Ses.hizala(g, ['الحمد', 'لله', 'رب', 'العالمين']), 3);
+    expect(Ses.hizala(g, ['الحمد', 'للهرب', 'العالمين']), 2);
+    expect(Ses.hizala(g, ['الحمد', 'ل', 'له', 'رب', 'العالمين']), 4);
+    expect(Ses.hizala(const [], ['بسم']), 0);
+  });
+
+  test('Kelime yazılırken baş tarafı duyulunca hemen açılır', () {
+    final w = _w(['بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ']);
+    final e = Eslestirici(w);
+    for (final k in ['بسم', 'الله', 'الرحمن']) {
+      e.besle(k);
+    }
+    expect(e.dene('الرحي'), isNotNull);
+    expect(e.bitti, isTrue);
   });
 }

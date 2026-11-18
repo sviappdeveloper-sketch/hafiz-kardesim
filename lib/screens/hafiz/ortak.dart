@@ -166,9 +166,15 @@ class MushafGorunum extends StatelessWidget {
           _ => yazi,
         };
 
+  /// Kelime listesine bağlı önbellek: dizin → (imza, hazır widget).
+  static final _onbellekler = Expando<Map<int, (int, Widget)>>();
+
   @override
   Widget build(BuildContext context) {
     final fs = HfAyar.yazi;
+    final onbellek = _onbellekler[w] ??= {};
+    // Bütün kelimeleri etkileyen ayarlar: biri değişince hepsi yeniden çizilir.
+    final ortak = Object.hash(fs, gizle, _b, hepsiAcik, bosCerceve, HfAyar.font, onTap == null);
     final bloklar = <Widget>[];
     var parca = <Widget>[];
     void kapat() {
@@ -206,12 +212,29 @@ class MushafGorunum extends StatelessWidget {
           }
         }
       }
-      parca.add(KeyedSubtree(key: anahtarlar[i], child: _kelime(i, k, fs)));
+      // Değişmeyen kelimeler yeniden çizilmez/ölçülmez: uzun bölümlerde (cüz) de yazı sesle anında gelir.
+      final imza = Object.hash(k.st, i == cur, ortak, k.pm);
+      final o = onbellek[i];
+      if (o != null && o.$1 == imza) {
+        parca.add(o.$2);
+      } else {
+        final y = KeyedSubtree(key: anahtarlar[i], child: _kelime(i, k, fs));
+        onbellek[i] = (imza, y);
+        parca.add(y);
+      }
       if (k.end) {
         // Boş sayfada ayet numarası da ayet okununca belirir.
         final gorunur = hepsiAcik || gizle != 'bos' || k.st != KD.gizli;
-        parca.add(Text('﴿${arapRakam(Kuran.a[k.ai].n)}﴾',
-            style: arapYazi(fs * .8, color: gorunur ? vurgu : Colors.transparent)));
+        final imzaN = Object.hash(gorunur, ortak);
+        final on = onbellek[-1 - i];
+        if (on != null && on.$1 == imzaN) {
+          parca.add(on.$2);
+        } else {
+          final y = Text('﴿${arapRakam(Kuran.a[k.ai].n)}﴾',
+              style: arapYazi(fs * .8, color: gorunur ? vurgu : Colors.transparent));
+          onbellek[-1 - i] = (imzaN, y);
+          parca.add(y);
+        }
       }
     }
     kapat();

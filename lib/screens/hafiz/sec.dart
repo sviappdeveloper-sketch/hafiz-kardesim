@@ -21,16 +21,25 @@ class SecEkrani extends StatefulWidget {
 class _SecEkraniState extends State<SecEkrani> {
   int _sekme = 0;
   String _ara = '';
+  /// Son açılan sure / cüz (listede işaretli görünür).
   int? _s;
-  int _a1 = 1, _a2 = 1;
   int? _cuz;
   int _p1 = 1, _p2 = 1;
 
-  void _sure(int s) => setState(() {
-        _s = s;
-        _a1 = 1;
-        _a2 = Kuran.ayetSayisi(s);
-      });
+  /// Sure ya da cüz seçilince doğrudan ayrıntı sayfasına geçilir: aralık, gizleme ve "Başla" orada.
+  /// (Eskiden seçim kartı listenin en üstünde kalıyordu; aşağıda seçen kişi yukarı çıkmak zorundaydı.)
+  void _sure(int s) {
+    setState(() => _s = s);
+    _detay(_SureDetay(sure: s, ust: widget));
+  }
+
+  void _cuzAc(int c) {
+    setState(() => _cuz = c);
+    _detay(_CuzDetay(cuz: c, ust: widget));
+  }
+
+  void _detay(Widget w) => Navigator.push(
+      context, MaterialPageRoute(settings: const RouteSettings(name: secDetayRota), builder: (_) => w));
 
   void _git(List<int> l) {
     if (l.isEmpty) return;
@@ -62,55 +71,12 @@ class _SecEkraniState extends State<SecEkrani> {
     );
   }
 
-  Widget _baslaKarti(String baslik, String alt, List<int> l, {Widget? ust}) => OrnateCard(
-        highlight: true,
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(baslik, style: AppText.display(20)),
-          Text(alt, style: AppText.body(13, color: AppColors.muted)),
-          if (ust != null) ...[const SizedBox(height: 10), ust],
-          if (widget.gizlemeSor) ...[
-            const SizedBox(height: 12),
-            Text('AYETLER NASIL GİZLENSİN?', style: AppText.label()),
-            const SizedBox(height: 6),
-            const GizlemeSecici(),
-          ],
-          const SizedBox(height: 12),
-          GoldButton(label: widget.dugme, icon: Icons.play_arrow_rounded, onPressed: l.isEmpty ? null : () => _git(l)),
-        ]),
-      );
-
   Widget _sureSekme() {
     final q = trSade(_ara);
     final k = Kayit.i;
     return ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 30), children: [
-      if (_s != null) ...[
-        _baslaKarti(
-          '${_s!}. ${Kuran.ad(_s!)}',
-          '${Kuran.ayetSayisi(_s!)} ayet · %${(k.sureOrani(_s!) * 100).round()} ezber',
-          Kuran.aralik(Kuran.ix(_s!, _a1), Kuran.ix(_s!, _a2)),
-          ust: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
-              Expanded(child: _ayetSec(_a1, (v) => setState(() => _a1 = v))),
-              const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('–')),
-              Expanded(child: _ayetSec(_a2, (v) => setState(() => _a2 = v))),
-            ]),
-            const SizedBox(height: 8),
-            Wrap(spacing: 6, children: [
-              ActionChip(label: const Text('Tamamı'), onPressed: () => setState(() {
-                    _a1 = 1;
-                    _a2 = Kuran.ayetSayisi(_s!);
-                  })),
-              for (final n in [3, 5, 10])
-                if (Kuran.ayetSayisi(_s!) > n)
-                  ActionChip(label: Text('$n ayet'), onPressed: () => setState(() => _a2 = (_a1 + n - 1).clamp(1, Kuran.ayetSayisi(_s!)))),
-            ]),
-          ]),
-        ),
-        const SizedBox(height: 12),
-      ],
       TextField(
-        decoration: const InputDecoration(hintText: 'Sure ara (ör. yasin, mülk, 36)', prefixIcon: Icon(Icons.search)),
+        decoration: const InputDecoration(hintText: 'Sure ara (ör. yasin, mülk, 36) · dokununca ayrıntılar açılır', prefixIcon: Icon(Icons.search)),
         onChanged: (v) => setState(() => _ara = v),
       ),
       const SizedBox(height: 8),
@@ -124,22 +90,6 @@ class _SecEkraniState extends State<SecEkrani> {
       for (var s = 1; s <= 114; s++)
         if (q.isEmpty || trSade(Kuran.ad(s)).contains(q) || '$s' == q) _sureSatir(s),
     ]);
-  }
-
-  Widget _ayetSec(int v, ValueChanged<int> f) {
-    final n = Kuran.ayetSayisi(_s!);
-    return DropdownButtonFormField<int>(
-      key: ValueKey('$_s-$v'),
-      initialValue: v.clamp(1, n),
-      isExpanded: true,
-      decoration: const InputDecoration(isDense: true),
-      items: [for (var i = 1; i <= n; i++) DropdownMenuItem(value: i, child: Text('$i. ayet'))],
-      onChanged: (x) {
-        if (x == null) return;
-        f(x);
-        if (_a2 < _a1) setState(() => _a2 = _a1);
-      },
-    );
   }
 
   Widget _sureSatir(int s) {
@@ -184,11 +134,6 @@ class _SecEkraniState extends State<SecEkrani> {
   Widget _cuzSekme() {
     final k = Kayit.i;
     return ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 30), children: [
-      if (_cuz != null) ...[
-        _baslaKarti('$_cuz. cüz', '${Kuran.etiketListe([Kuran.cuz(_cuz!).first])} → ${Kuran.etiketListe([Kuran.cuz(_cuz!).last])}',
-            Kuran.cuz(_cuz!)),
-        const SizedBox(height: 12),
-      ],
       Text('Altındaki çizgi o cüzdeki ezber oranını gösterir.', style: AppText.body(13, color: AppColors.muted)),
       const SizedBox(height: 8),
       GridView.count(
@@ -203,7 +148,7 @@ class _SecEkraniState extends State<SecEkrani> {
               final l = Kuran.cuz(c);
               final p = l.where(k.ezber).length / l.length;
               return InkWell(
-                onTap: () => setState(() => _cuz = c),
+                onTap: () => _cuzAc(c),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   decoration: BoxDecoration(
@@ -235,11 +180,13 @@ class _SecEkraniState extends State<SecEkrani> {
       Text('Medine mushafı sayfa numarası (1–604). Hafızlar genelde sayfa sayfa ezberler.',
           style: AppText.body(13, color: AppColors.muted)),
       const SizedBox(height: 12),
-      _baslaKarti(
+      baslaKarti(
+        widget,
+        context,
         _p1 == _p2 ? '$_p1. sayfa' : '$_p1–$_p2. sayfalar',
         l.isEmpty ? 'Geçersiz aralık' : '${l.length} ayet · ${Kuran.etiketListe(l)}',
         l,
-        ust: Row(children: [
+        ek: Row(children: [
           Expanded(child: _sayfaAlan(_p1, (v) => setState(() {
                 _p1 = v;
                 if (_p2 < v) _p2 = v;
@@ -256,4 +203,132 @@ class _SecEkraniState extends State<SecEkrani> {
         Expanded(child: Text('$v', textAlign: TextAlign.center, style: AppText.number(20))),
         IconButton(onPressed: v < 604 ? () => f(v + 1) : null, icon: const Icon(Icons.add_circle_outline)),
       ]);
+}
+
+/// Ayrıntı sayfasının yol adı: seçimden sonra listeyle birlikte kapatmak için.
+const secDetayRota = 'secDetay';
+
+/// Seçim tamamlanınca ayrıntı sayfasını ve seçim ekranını birlikte kapatır.
+void secimiKapat(BuildContext c) {
+  final n = Navigator.of(c);
+  n.popUntil((r) => r.settings.name != secDetayRota);
+  n.pop();
+}
+
+/// Seçilen bölümün kartı: başlık, ek ayarlar, gizleme ve başlat düğmesi.
+Widget baslaKarti(SecEkrani ust, BuildContext context, String baslik, String alt, List<int> l, {Widget? ek}) => OrnateCard(
+      highlight: true,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(baslik, style: AppText.display(20)),
+        Text(alt, style: AppText.body(13, color: AppColors.muted)),
+        if (ek != null) ...[const SizedBox(height: 10), ek],
+        if (ust.gizlemeSor) ...[
+          const SizedBox(height: 12),
+          Text('AYETLER NASIL GİZLENSİN?', style: AppText.label()),
+          const SizedBox(height: 6),
+          const GizlemeSecici(),
+        ],
+        const SizedBox(height: 12),
+        GoldButton(label: ust.dugme, icon: Icons.play_arrow_rounded, onPressed: l.isEmpty ? null : () => ust.onSec(context, l)),
+      ]),
+    );
+
+/// Sure ayrıntıları: ayet aralığı seçilip başlatılır.
+class _SureDetay extends StatefulWidget {
+  const _SureDetay({required this.sure, required this.ust});
+  final int sure;
+  final SecEkrani ust;
+
+  @override
+  State<_SureDetay> createState() => _SureDetayState();
+}
+
+class _SureDetayState extends State<_SureDetay> {
+  int get _s => widget.sure;
+  late int _a1 = 1, _a2 = Kuran.ayetSayisi(_s);
+
+  Widget _ayetSec(int v, ValueChanged<int> f) {
+    final n = Kuran.ayetSayisi(_s);
+    return DropdownButtonFormField<int>(
+      key: ValueKey('$_s-$v'),
+      initialValue: v.clamp(1, n),
+      isExpanded: true,
+      decoration: const InputDecoration(isDense: true),
+      items: [for (var i = 1; i <= n; i++) DropdownMenuItem(value: i, child: Text('$i. ayet'))],
+      onChanged: (x) {
+        if (x == null) return;
+        f(x);
+        if (_a2 < _a1) setState(() => _a2 = _a1);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final k = Kayit.i;
+    final n = Kuran.ayetSayisi(_s);
+    return Scaffold(
+      appBar: AppBar(title: Text('${widget.ust.baslik} · Ayrıntılar')),
+      body: PatternBackground(
+        child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 30), children: [
+          Center(child: Text(Kuran.arapAd(_s), style: arapYazi(34, color: AppColors.gold))),
+          const SizedBox(height: 8),
+          baslaKarti(
+            widget.ust,
+            context,
+            '$_s. ${Kuran.ad(_s)}',
+            '$n ayet · %${(k.sureOrani(_s) * 100).round()} ezber',
+            Kuran.aralik(Kuran.ix(_s, _a1), Kuran.ix(_s, _a2)),
+            ek: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('AYET ARALIĞI', style: AppText.label()),
+              const SizedBox(height: 6),
+              Row(children: [
+                Expanded(child: _ayetSec(_a1, (v) => setState(() => _a1 = v))),
+                const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('–')),
+                Expanded(child: _ayetSec(_a2, (v) => setState(() => _a2 = v))),
+              ]),
+              const SizedBox(height: 8),
+              Wrap(spacing: 6, children: [
+                ActionChip(label: const Text('Tamamı'), onPressed: () => setState(() {
+                      _a1 = 1;
+                      _a2 = n;
+                    })),
+                for (final x in [3, 5, 10])
+                  if (n > x)
+                    ActionChip(label: Text('$x ayet'), onPressed: () => setState(() => _a2 = (_a1 + x - 1).clamp(1, n))),
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Cüz ayrıntıları.
+class _CuzDetay extends StatelessWidget {
+  const _CuzDetay({required this.cuz, required this.ust});
+  final int cuz;
+  final SecEkrani ust;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = Kuran.cuz(cuz);
+    final p = l.where(Kayit.i.ezber).length / l.length;
+    return Scaffold(
+      appBar: AppBar(title: Text('${ust.baslik} · Ayrıntılar')),
+      body: PatternBackground(
+        child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 30), children: [
+          baslaKarti(
+            ust,
+            context,
+            '$cuz. cüz',
+            '${Kuran.etiketListe([l.first])} → ${Kuran.etiketListe([l.last])} · ${l.length} ayet · %${(p * 100).round()} ezber',
+            l,
+          ),
+        ]),
+      ),
+    );
+  }
 }

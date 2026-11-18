@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
@@ -6,6 +7,7 @@ import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../services/settings_service.dart';
+import 'arapca.dart';
 
 /// Arapça ses tanıma. Kâri nefes alınca tanıma durur; mikrofon açık kaldıkça kendiliğinden yeniden başlar.
 /// Duyulan kelimeler [kelime] ile tek tek gönderilir (kısmi sonuçta son kelime kesinleşene kadar beklenir).
@@ -14,7 +16,11 @@ class Ses {
   static final stt.SpeechToText _s = stt.SpeechToText();
   static bool _hazir = false;
   static bool _istek = false;
-  static int _off = 0;
+  /// Bu tanıma parçasında eşleştiriciye gönderilmiş kelimeler (sırasıyla).
+  /// Ses tanıma kısmi sonuçlarda önceki kelimeleri sık sık düzeltir, birleştirir ya da böler;
+  /// yeni kelimeler sıra numarasına göre değil, gönderilenlerle içerik olarak hizalanarak bulunur.
+  /// (Eski yöntemde kelime sayısı değişince yeni kelimeler kayboluyor, yazı geride kalıyordu.)
+  static List<String> _giden = const [];
   /// Son kısmi sonucun kelimeleri: tanıma kesin sonuç vermeden durursa son kelime kaybolmasın.
   static List<String> _sonTk = const [];
   static void Function(String kelime)? _kelime;
@@ -74,7 +80,7 @@ class Ses {
 
   static Future<void> _dinle() async {
     if (!_istek) return;
-    _off = 0;
+    _giden = const [];
     _sonTk = const [];
     if (cihazda && !_buOturumdaSonuc) {
       // Cihaz içi tanıma art arda sonuç vermiyorsa (paket yok) internetli tanımaya geç.
@@ -88,7 +94,7 @@ class Ses {
         onResult: _sonuc,
         localeId: dil,
         listenFor: const Duration(minutes: 2),
-        pauseFor: const Duration(seconds: 4),
+        pauseFor: const Duration(seconds: 6),
         listenOptions: stt.SpeechListenOptions(
           partialResults: true,
           cancelOnError: false,
@@ -111,21 +117,54 @@ class Ses {
   }
 
   /// Kısmi sonuçta bekletilen (henüz gönderilmemiş) kelimeleri gönderir.
-  /// [_off] sıfırlanmaz: ardından kesin sonuç gelirse aynı kelimeler ikinci kez gönderilmez.
   static void _bosalt() {
     final tk = _sonTk;
     _sonTk = const [];
-    final bas = _off;
-    if (tk.length > _off) _off = tk.length;
-    for (var i = bas; i < tk.length; i++) {
+    _gonder(tk, tk.length);
+  }
+
+  /// [tk] içinde daha önce gönderilmiş kısmın bittiği yer. Kelimeler birleşip bölünebildiği için
+  /// son gönderilen kelimelerin bitişik yazımı, adayın sonundaki bitişik yazımla karşılaştırılır.
+  static int hizala(List<String> giden, List<String> tk) {
+    final c = giden.length;
+    if (c == 0) return 0;
+    var g = '';
+    for (var m = c - 1; m >= 0 && m >= c - 3; m--) {
+      g = nrm(giden[m]) + g;
+    }
+    var enIyi = math.min(c, tk.length), enPuan = -1.0;
+    for (var j = math.max(0, c - 4); j <= math.min(tk.length, c + 3); j++) {
+      var t = '';
+      for (var m = j - 1; m >= 0 && t.length < g.length; m--) {
+        t = nrm(tk[m]) + t;
+      }
+      final p = rat(g, t) + (j == c ? .05 : 0);
+      if (p > enPuan) {
+        enPuan = p;
+        enIyi = j;
+      }
+    }
+    return enIyi;
+  }
+
+  /// [tk]'nın ilk [kadar] kelimesinden henüz gönderilmemiş olanları gönderir.
+  static void _gonder(List<String> tk, int kadar) {
+    final s = hizala(_giden, tk);
+    for (var i = s; i < kadar; i++) {
       _kelime?.call(tk[i]);
+    }
+    if (kadar > s) {
+      _giden = tk.sublist(0, kadar);
+    } else if (s <= tk.length) {
+      _giden = tk.sublist(0, s);
     }
   }
 
   static void _durum(String d) {
     if (d == 'done' || d == 'notListening') {
       _bosalt();
-      if (_istek) _yeniden(120);
+      // Tanıma nefeste kapanır: hemen yeniden aç ki sonraki kelimeler kaçmasın.
+      if (_istek) _yeniden(80);
     }
   }
 
@@ -156,21 +195,16 @@ class Ses {
       _sonucsuz = 0;
     }
     final tk = metin.split(RegExp(r'\s+')).where((x) => x.isNotEmpty).toList();
+    // Kısmi sonuçta son kelime hâlâ yazılıyor olabilir: kesinleşene kadar beklenir…
     final kadar = r.finalResult ? tk.length : tk.length - 1;
-    for (var i = _off; i < kadar; i++) {
-      _kelime?.call(tk[i]);
-    }
+    _gonder(tk, kadar);
     if (r.finalResult) {
-      // Kesin sonuç kısmi sonuçtan kısa geldiyse son kelime hiç gönderilmemiş olabilir.
-      // (Tekrar gönderilen önceki kelime eşleştiricide yok sayılır.)
-      if (kadar <= _off && tk.isNotEmpty) _kelime?.call(tk.last);
-      _off = 0;
+      _giden = const [];
       _sonTk = const [];
     } else {
       _sonTk = tk;
-      if (kadar > _off) _off = kadar;
-      // Gecikmesin: henüz kesinleşmemiş son kelime sıradaki kelimeye çok benziyorsa hemen kabul edilir.
-      if (_dene != null && tk.isNotEmpty && _off == tk.length - 1 && _dene!(tk.last)) _off = tk.length;
+      // …ama sıradaki kelimeye benziyorsa beklenmez, hemen ekrana gelir (Tarteel gibi anında).
+      if (_dene != null && tk.isNotEmpty && _giden.length == tk.length - 1 && _dene!(tk.last)) _giden = tk;
     }
     _canli?.call(metin);
   }

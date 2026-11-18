@@ -143,9 +143,11 @@ class Eslestirici {
     final h = nrm(raw);
     if (h.length < 2) return null;
     final son = cur == w.length - 1;
-    final esik = son ? .72 : .85;
+    final esik = son ? .72 : .8;
     final aday = [h, if (_buf.isNotEmpty) _buf + h];
-    if (!aday.any((a) => sim(a, x) >= esik)) return null;
+    // Kelime henüz yazılırken (kısmi) baş tarafı yeterince uzunsa da kabul: yazı sesle birlikte gelsin.
+    bool basi(String a) => a.length >= 3 && x.n.length >= 4 && x.n.startsWith(a) && a.length * 4 >= x.n.length * 3;
+    if (!aday.any((a) => sim(a, x) >= esik || basi(a))) return null;
     final once = cur;
     final d = <int>[];
     if (x.st == KD.gizli) {

@@ -94,9 +94,15 @@ class _OkuEkraniState extends State<OkuEkrani> {
   void _kaydir() {
     if (_e.cur >= _w.length) return;
     final c = _keys[_e.cur].currentContext;
-    if (c != null) {
-      Scrollable.ensureVisible(c, alignment: .35, duration: const Duration(milliseconds: 250));
+    if (c == null) return;
+    // Sıradaki kelime ekranın rahat okunan bölgesindeyse kaydırılmaz: her kelimede sayfa oynamasın.
+    final ro = c.findRenderObject();
+    if (ro is RenderBox && ro.attached) {
+      final y = ro.localToGlobal(Offset.zero).dy;
+      final h = MediaQuery.sizeOf(context).height;
+      if (y > h * .15 && y < h * .55) return;
     }
+    Scrollable.ensureVisible(c, alignment: .3, duration: const Duration(milliseconds: 200));
   }
 
   void _sonra() {
