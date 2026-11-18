@@ -1,0 +1,1 @@
+secret uzunluk: 0  variable uzunluk: 37
