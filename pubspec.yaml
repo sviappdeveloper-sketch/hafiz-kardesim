@@ -36,6 +36,11 @@ dependencies:
   sherpa_onnx: ">=1.12.10 <3.0.0"
   http: ^1.2.2
 
+# path_provider_android'in JNI'li yeni sürümleri bu uygulamada "ClassNotFoundException:
+# android/content/Context" verip çalışma geçmişini ve model dosyalarını açtırmıyor: eski (Pigeon'lu) sürüme sabit.
+dependency_overrides:
+  path_provider_android: 2.2.17
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
