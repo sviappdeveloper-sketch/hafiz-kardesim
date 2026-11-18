@@ -79,13 +79,17 @@ class Kulak {
     return c.future;
   }
 
+  /// Model dosyasını uygulama klasörüne bir kez kopyalar (sonraki açılışlarda 19 MB yeniden okunmaz).
+  static const _surum = 'quran-asr-tiny-1';
   static Future<String> _kopyala(String varlik) async {
     final dir = await getApplicationSupportDirectory();
-    final hedef = File('${dir.path}/asr_${varlik.split('/').last}');
+    final ad = varlik.split('/').last;
+    final hedef = File('${dir.path}/asr_$ad');
+    final isaret = File('${dir.path}/asr_$ad.$_surum');
+    if (await isaret.exists() && await hedef.exists()) return hedef.path;
     final veri = await rootBundle.load(varlik);
-    if (!await hedef.exists() || await hedef.length() != veri.lengthInBytes) {
-      await hedef.writeAsBytes(veri.buffer.asUint8List(veri.offsetInBytes, veri.lengthInBytes), flush: true);
-    }
+    await hedef.writeAsBytes(veri.buffer.asUint8List(veri.offsetInBytes, veri.lengthInBytes), flush: true);
+    await isaret.writeAsString('ok');
     return hedef.path;
   }
 
@@ -204,7 +208,7 @@ class Kulak {
   /// Sıradaki çözümü gönderir: nefeste kesin, bölüm çok uzarsa zorla kesin, yoksa ara sonuç.
   static void _isle() {
     if (_mesgul || _isciPort == null || _sonuc == null) return;
-    final nefes = _sessiz >= _hz * 45 ~/ 100;
+    final nefes = _sessiz >= _hz * 35 ~/ 100;
     final cokUzun = _uzun >= _hz * 10;
     // Çok kısa ses modele gönderilmez (boş ses modeli çökertir).
     if (_uzun - math.min(_sessiz, _uzun) < _hz * 3 ~/ 10) {

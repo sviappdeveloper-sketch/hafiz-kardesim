@@ -243,7 +243,11 @@ void main() {
     e.bolum(_k('الم ذلك الكتاب لا ريب في'), kesin: false);
     expect(e.cur, 5);
     expect(w[5].st, KD.gizli);
+    // Söylenmekte olan son kelime (هدى) beklenir; nefeste açılır.
     e.bolum(_k('الم ذلك الكتاب لا ريب فيه هدى'), kesin: false);
+    expect(e.cur, 6);
+    expect(w[6].st, KD.gizli);
+    e.bolum(_k('الم ذلك الكتاب لا ريب فيه هدى'), kesin: true);
     expect(e.cur, 7);
     expect(_durum(w).substring(0, 7), 'OOOOOOO');
   });
@@ -275,7 +279,11 @@ void main() {
     e.bolum(_k('الم ذلك الكتاب لا ريب فيه هدى للمتقين الذين يؤمنون بالغيب ويقيمون الصلوة ومما رزقنهم ينفقون'), kesin: true);
     e.bolum(_k('والذين يؤمنون بما انزل اليك وما انزل من قبلك'), kesin: true);
     // 4. ayetin sonu ve 5. ayet duyulmadı; okuyucu 6. ayete geçti.
+    // Ara sonuçta ileri atlanmaz; cümle bitince (nefes) geride kalan tamamlanır.
     e.bolum(_k('ان الذين كفروا سواء'), kesin: false);
+    final qablik = w.indexWhere((k) => k.n == 'قبلك');
+    expect(e.cur, qablik + 1);
+    e.bolum(_k('ان الذين كفروا سواء'), kesin: true);
     final kafaruu = w.indexWhere((k) => k.n == 'كفروا');
     expect(e.cur, kafaruu + 2);
     expect(w.take(kafaruu + 2).every((k) => k.st == KD.dogru), isTrue);
@@ -287,7 +295,7 @@ void main() {
     final bas = w.indexWhere((k) => k.n == 'والذين');
     e.cur = bas;
     e.sifirlaTampon();
-    e.bolum(_k('والذين يؤمنون بما انزل اليك وما انزل من قبلك قبلها يوم ان الذين كفروا'), kesin: false);
+    e.bolum(_k('والذين يؤمنون بما انزل اليك وما انزل من قبلك قبلها يوم ان الذين كفروا'), kesin: true);
     final kafaruu = w.indexWhere((k) => k.n == 'كفروا');
     expect(e.cur, kafaruu + 1);
   });
@@ -300,5 +308,13 @@ void main() {
     e.sifirlaTampon();
     e.bolum(_k('الذين يؤمنون بالغيب ويقيمون الزكاه ومما رزقناهم'), kesin: true);
     expect(_durum(w).substring(bas, bas + 7), 'OOOOEOO');
+  });
+
+  test('Kulak: ara sonuçta yanlış görünen kelime kırmızı yanmaz, cümle bitince karar verilir', () {
+    final w = _w(bakara1_6);
+    final e = Eslestirici(w);
+    e.bolum(_k('الم ذلك الكتاب لا ريب في علي للمتقين الذين'), kesin: false);
+    expect(e.cur, 5);
+    expect(w.skip(5).every((k) => k.st == KD.gizli), isTrue);
   });
 }

@@ -48,6 +48,8 @@ class _OkuEkraniState extends State<OkuEkrani> {
     _keys = List.generate(_w.length, (_) => GlobalKey());
     Ses.acik.addListener(_yenile);
     _uzatGerekirse();
+    // Ses modeli ekran açılırken hazırlanır: "başla"ya basınca bekleme olmasın.
+    if (_ses) Kulak.hazirla();
   }
 
   /// Okuma sona yaklaşınca sıradaki ayetleri gizli olarak ekler: kişi sure geçişinde de okumaya
@@ -96,18 +98,23 @@ class _OkuEkraniState extends State<OkuEkrani> {
     if (mounted) setState(() {});
   }
 
+  /// Sayfa, okunan son kelimeyi takip ederek yumuşakça kayar. Sıradaki (henüz okunmamış) kelimeye
+  /// göre kaydırılmaz: sayfanın son kelimesi okununca alttaki sayfa birden gelmez, okumaya
+  /// başladıkça yavaşça yukarı akar.
   void _kaydir() {
-    if (_e.cur >= _w.length) return;
-    final c = _keys[_e.cur].currentContext;
+    if (_e.cur <= 0) return;
+    final i = (_e.cur - 1).clamp(0, _w.length - 1);
+    final c = _keys[i].currentContext;
     if (c == null) return;
-    // Sıradaki kelime ekranın rahat okunan bölgesindeyse kaydırılmaz: her kelimede sayfa oynamasın.
     final ro = c.findRenderObject();
     if (ro is RenderBox && ro.attached) {
       final y = ro.localToGlobal(Offset.zero).dy;
       final h = MediaQuery.sizeOf(context).height;
-      if (y > h * .15 && y < h * .55) return;
+      // Okunan satır ekranın rahat bölgesindeyse kaydırılmaz.
+      if (y > h * .12 && y < h * .58) return;
     }
-    Scrollable.ensureVisible(c, alignment: .3, duration: const Duration(milliseconds: 200));
+    Scrollable.ensureVisible(c,
+        alignment: .38, duration: const Duration(milliseconds: 900), curve: Curves.easeInOutCubic);
   }
 
   void _sonra() {

@@ -400,7 +400,12 @@ class Eslestirici {
       if (kesin) _kok = cur;
       return yeni;
     }
-    final yol = hizalaBolum(h, w, _kok, sonKesin: kesin);
+    // Ara sonuçta söylenmekte olan son kelime hiç sayılmaz: kelime bitip sonraki başlayınca ya da
+    // nefeste (kesin) açılır.
+    if (!kesin) h.removeLast();
+    if (h.isEmpty) return yeni;
+    var yol = hizalaBolum(h, w, _kok, sonKesin: kesin);
+    if (!kesin) yol = yol.temkinli(_kok);
     if (yol.son > _kok) {
       for (var i = _kok; i < yol.son; i++) {
         final st = yol.durum[i - _kok];
@@ -460,6 +465,23 @@ class BolumYolu {
   final int son;
   final List<int> durum;
   final List<String> duyulan;
+
+  /// Ara sonuç için temkinli kısım: yalnızca baştan itibaren art arda doğru duyulan kelimeler.
+  /// Hatalı görünen kelimede ya da duyulmayan boşlukta durulur (tek kelimelik kısa boşluk hariç);
+  /// karar okuyucu cümleyi bitirince (nefeste) verilir. Böylece ileri atlanmaz, yanlış kırmızı yanıp sönmez.
+  BolumYolu temkinli(int kok) {
+    var k = 0;
+    final m = son - kok;
+    while (k < m) {
+      if (durum[k] != KD.dogru) break;
+      if (duyulan[k].isEmpty) {
+        // Duyulmayan kelime: başta değilse, tek kelimeyse ve hemen ardından duyulan geliyorsa geçilir.
+        if (k == 0 || k + 1 >= m || duyulan[k + 1].isEmpty) break;
+      }
+      k++;
+    }
+    return BolumYolu(kok + k, durum.sublist(0, k), duyulan.sublist(0, k));
+  }
 }
 
 /// Duyulan kelimeleri ([h], normalize) [kok]'ten başlayan metne hizalar (düzenleme uzaklığı).
