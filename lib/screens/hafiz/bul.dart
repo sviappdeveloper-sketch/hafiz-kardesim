@@ -97,7 +97,7 @@ class _BulEkraniState extends State<BulEkrani> {
   @override
   void dispose() {
     Ses.acik.removeListener(_yenile);
-    Ses.durdur();
+    Ses.durdur(bosalt: false);
     _c.dispose();
     super.dispose();
   }

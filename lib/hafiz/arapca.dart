@@ -128,6 +128,36 @@ class Eslestirici {
     return d;
   }
 
+  /// Henüz kesinleşmemiş (kısmi sonuçtaki son) kelimeyi dener: sıradaki kelimeye çok benziyorsa
+  /// hemen doğru sayar, böylece ses tanımanın kelimeyi kesinleştirmesi beklenmez. Değişen dizinler
+  /// ya da eşleşme yoksa null döner.
+  List<int>? dene(String raw) {
+    if (bitti) return null;
+    final x = w[cur];
+    if (x.muq) return null;
+    final h = nrm(raw);
+    if (h.length < 2) return null;
+    final son = cur == w.length - 1;
+    final esik = son ? .72 : .85;
+    final aday = [h, if (_buf.isNotEmpty) _buf + h];
+    if (!aday.any((a) => sim(a, x) >= esik)) return null;
+    final once = cur;
+    final d = <int>[];
+    if (x.st == KD.gizli) {
+      x.st = KD.dogru;
+      x.h = raw;
+      d.add(cur);
+    }
+    _buf = '';
+    _miss = 0;
+    _lh = '';
+    cur++;
+    for (var i = once; i < cur; i++) {
+      if (w[i].end) d.addAll(lafizToleransi(w, w[i].li));
+    }
+    return d;
+  }
+
   /// Okuma bitince (Bitir ya da son kelime): başlanmış her ayete toleransı uygular.
   /// Son ayette duyulmadan kalan kelimeler de tolerans içindeyse doğru sayılır.
   List<int> bitisToleransi() {

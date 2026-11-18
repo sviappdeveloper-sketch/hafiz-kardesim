@@ -13,6 +13,7 @@ import '../../services/settings_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format.dart';
 import '../../widgets/ornaments.dart';
+import 'bildir.dart';
 import 'ortak.dart';
 import 'sonuc.dart';
 
@@ -100,7 +101,8 @@ class _CanliEkraniState extends State<CanliEkrani> {
   List<GlobalKey> _keys = [];
   bool _kaydedildi = false;
   final _not = TextEditingController();
-  String _duyulan = '';
+  final _duyulanN = ValueNotifier<String>('');
+  String get _duyulan => _duyulanN.value;
   Timer? _canliT;
   final Map<int, int> _bekleyenM = {};
   final Map<int, String> _bekleyenH = {};
@@ -121,7 +123,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
   @override
   void dispose() {
     Ses.acik.removeListener(_yenile);
-    Ses.durdur();
+    Ses.durdur(bosalt: false);
     _sub?.cancel();
     _canliT?.cancel();
     _yazT?.cancel();
@@ -267,9 +269,16 @@ class _CanliEkraniState extends State<CanliEkrani> {
         final d = _e!.besle(k);
         if (d.isNotEmpty) _yaz(d);
       },
+      dene: (k) {
+        if (!mounted || _e == null) return false;
+        final d = _e!.dene(k);
+        if (d == null) return false;
+        _yaz(d);
+        return true;
+      },
       canli: (m) {
         if (!mounted) return;
-        setState(() => _duyulan = m.split(' ').reversed.take(8).toList().reversed.join(' '));
+        _duyulanN.value = m.split(' ').reversed.take(8).toList().reversed.join(' ');
         _canliT ??= Timer(const Duration(milliseconds: 1500), () {
           _canliT = null;
           HocaService.isaretle(widget.id, const {}, const {}, _e!.cur, canli: _duyulan).catchError((_) {});
@@ -389,7 +398,14 @@ class _CanliEkraniState extends State<CanliEkrani> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(_hocayim ? 'Öğrencim: ${c.ad(karsi)}' : 'Hocam: ${c.ad(karsi)}'),
-          actions: [TextButton(onPressed: _bitir, child: const Text('Bitir'))],
+          actions: [
+            IconButton(
+              tooltip: 'Suistimal bildir',
+              onPressed: () => suistimalBildir(context, widget.me, karsi, c.ad(karsi)),
+              icon: const Icon(Icons.flag_outlined),
+            ),
+            TextButton(onPressed: _bitir, child: const Text('Bitir')),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(4),
             child: LinearProgressIndicator(value: yuzde, minHeight: 4, color: AppColors.gold, backgroundColor: AppColors.inkLine),
@@ -469,8 +485,11 @@ class _CanliEkraniState extends State<CanliEkrani> {
   Widget _ogrenciAlt() => _altKutu(Column(mainAxisSize: MainAxisSize.min, children: [
         SizedBox(
           height: 28,
-          child: Text(_duyulan,
-              maxLines: 1, overflow: TextOverflow.ellipsis, textDirection: TextDirection.rtl, style: arapYazi(16, color: AppColors.muted).copyWith(height: 1.4)),
+          child: ValueListenableBuilder<String>(
+            valueListenable: _duyulanN,
+            builder: (_, d, __) => Text(d,
+                maxLines: 1, overflow: TextOverflow.ellipsis, textDirection: TextDirection.rtl, style: arapYazi(16, color: AppColors.muted).copyWith(height: 1.4)),
+          ),
         ),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           TextButton.icon(onPressed: () => _isaretle(KD.ipucu), icon: const Icon(Icons.lightbulb_outline), label: const Text('İpucu')),

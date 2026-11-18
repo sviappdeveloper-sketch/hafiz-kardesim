@@ -26,7 +26,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
   late final Eslestirici _e;
   late final List<GlobalKey> _keys;
   final _t0 = DateTime.now();
-  String _duyulan = '';
+  final _duyulan = ValueNotifier<String>('');
   bool _bitti = false;
   final List<(int, int, int)> _gecmis = []; // geri almak için: (dizin, eski durum, eski cur)
 
@@ -44,7 +44,8 @@ class _OkuEkraniState extends State<OkuEkrani> {
   @override
   void dispose() {
     Ses.acik.removeListener(_yenile);
-    Ses.durdur();
+    Ses.durdur(bosalt: false);
+    _duyulan.dispose();
     super.dispose();
   }
 
@@ -86,9 +87,19 @@ class _OkuEkraniState extends State<OkuEkrani> {
           _sonra();
         }
       },
-      canli: (m) {
-        if (mounted) setState(() => _duyulan = m.split(' ').reversed.take(8).toList().reversed.join(' '));
+      dene: (k) {
+        if (!mounted) return false;
+        final once = _e.cur;
+        final d = _e.dene(k);
+        if (d == null) return false;
+        for (final i in d) {
+          _gecmis.add((i, KD.gizli, once));
+        }
+        _sonra();
+        return true;
       },
+      // Yalnızca alttaki "duyulan" satırı yenilenir; bütün sayfa yeniden çizilmez.
+      canli: (m) => _duyulan.value = m.split(' ').reversed.take(8).toList().reversed.join(' '),
       hata: (h) {
         if (mounted) showSnack(context, Ses.hataMetni(h));
       },
@@ -224,6 +235,10 @@ class _OkuEkraniState extends State<OkuEkrani> {
               ]),
               const SizedBox(height: 8),
               GizlemeSecici(onChanged: (_) => _yenile()),
+              const SizedBox(height: 14),
+              Text('Yazı tipi', style: AppText.body(15)),
+              const SizedBox(height: 6),
+              YaziTipiSecici(onChanged: _yenile),
             ]),
           ),
         ),
@@ -299,11 +314,14 @@ class _OkuEkraniState extends State<OkuEkrani> {
               ? Column(mainAxisSize: MainAxisSize.min, children: [
                   SizedBox(
                     height: 30,
-                    child: Text(_duyulan,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textDirection: TextDirection.rtl,
-                        style: arapYazi(17, color: AppColors.muted).copyWith(height: 1.4)),
+                    child: ValueListenableBuilder<String>(
+                      valueListenable: _duyulan,
+                      builder: (_, d, __) => Text(d,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textDirection: TextDirection.rtl,
+                          style: arapYazi(17, color: AppColors.muted).copyWith(height: 1.4)),
+                    ),
                   ),
                   Row(children: [
                     kucuk(Icons.lightbulb_outline, 'İpucu', () => _isaretle(KD.ipucu)),

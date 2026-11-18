@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/constants.dart';
 import '../models/models.dart';
 import '../utils/format.dart';
 
@@ -91,9 +92,25 @@ class HocaService {
       .map((s) => s.docs.map((d) => Bag(d.id, d.data())).toList()
         ..sort((a, b) => a.karsiAd(me).toLowerCase().compareTo(b.karsiAd(me).toLowerCase())));
 
+  // ---------------- hanım–hanım, bey–bey eşleşmesi ----------------
+  static const cinsiyetUyari = 'Hoca–öğrenci eşleşmesi yalnızca hanım–hanım ya da bey–bey olarak yapılabilir.';
+
+  static Future<String> cinsiyet(String uid) async => ((await users.doc(uid).get()).data()?['gender'] ?? '') as String;
+
+  /// İki üye aynı cinsiyetten (hanım–hanım / bey–bey) değilse hata verir.
+  static Future<void> cinsiyetKontrol(String a, String b, {String? aCinsiyet}) async {
+    final ga = aCinsiyet ?? await cinsiyet(a);
+    if (ga != Gender.female && ga != Gender.male) {
+      throw HatimException('Hoca–öğrenci için profilinde Hanım ya da Bey seçili olmalı (Profilim).');
+    }
+    final gb = await cinsiyet(b);
+    if (ga != gb) throw HatimException(cinsiyetUyari);
+  }
+
   /// [benHocayim]: true → karşı tarafa "öğrencim olur musun", false → "hocam olur musun".
   static Future<void> istekGonder(AppUser me, String uid, String ad, {required bool benHocayim}) async {
     if (uid == me.id) throw HatimException('Kendine istek gönderemezsin.');
+    await cinsiyetKontrol(me.id, uid, aCinsiyet: me.gender);
     final hoca = benHocayim ? me.id : uid, ogrenci = benHocayim ? uid : me.id;
     final ref = baglar.doc('${hoca}_$ogrenci');
     await _db.runTransaction((tx) async {
@@ -115,8 +132,10 @@ class HocaService {
     });
   }
 
-  static Future<void> cevapla(Bag b, bool kabul) =>
-      baglar.doc(b.id).update({'durum': kabul ? 'kabul' : 'red', 'cevap': FieldValue.serverTimestamp()});
+  static Future<void> cevapla(Bag b, bool kabul) async {
+    if (kabul) await cinsiyetKontrol(b.hoca, b.ogrenci);
+    await baglar.doc(b.id).update({'durum': kabul ? 'kabul' : 'red', 'cevap': FieldValue.serverTimestamp()});
+  }
 
   static Future<void> bagiSil(Bag b) => baglar.doc(b.id).delete();
 
@@ -141,6 +160,7 @@ class HocaService {
       canlilar.doc(id).snapshots().map((d) => d.exists ? Canli(d.id, d.data()!) : null);
 
   static Future<String> canliBaslat(AppUser me, Bag b, List<int> ayetler, String gizle) async {
+    await cinsiyetKontrol(me.id, b.karsi(me.id), aCinsiyet: me.gender);
     final ref = canlilar.doc();
     await ref.set({
       'hoca': b.hoca,

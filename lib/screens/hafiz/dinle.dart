@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../hafiz/arapca.dart';
+import '../../hafiz/ayet_ses.dart';
 import '../../hafiz/kayit.dart';
 import '../../hafiz/kuran.dart';
 import '../../services/settings_service.dart';
+import '../audio_quran_screen.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format.dart';
 import '../../widgets/ornaments.dart';
@@ -20,7 +22,6 @@ const kariler = [
   ('Abdul_Basit_Murattal_192kbps', 'Abdulbasıt Abdussamed'),
   ('MaherAlMuaiqly128kbps', 'Mâhir el-Muaykılî'),
   ('Ghamadi_40kbps', 'Saad el-Gâmidî'),
-  ('Abdurrahmaan_As-Sudais_192kbps', 'Abdurrahman es-Sudeys'),
 ];
 
 /// Ayet ayet dinleme: tekrar sayısı, bölüm tekrarı, hız, "ardından ben tekrar edeyim" beklemesi.
@@ -44,7 +45,39 @@ class _DinleEkraniState extends State<DinleEkrani> {
   final _t0 = DateTime.now();
   final _keys = <int, GlobalKey>{};
 
-  String get _kari => SettingsService.prefs.getString('hfKari') ?? kariler.first.$1;
+  String get _kari {
+    final k = SettingsService.prefs.getString('hfKari');
+    return kariler.any((x) => x.$1 == k) ? k! : kariler.first.$1;
+  }
+
+  /// İndirme durumu: telefonda olmayan ayet sayısı, süren indirme ilerlemesi.
+  int? _eksik;
+  int? _iniyor;
+  bool _iptal = false;
+
+  List<(int, int)> get _liste => [
+        for (final ai in widget.ayetler) (Kuran.a[ai].s, Kuran.a[ai].n),
+        if (widget.ayetler.any((ai) => Kuran.a[ai].n == 1 && Kuran.a[ai].s != 1 && Kuran.a[ai].s != 9)) (1, 1),
+      ];
+
+  Future<void> _eksikHesapla() async {
+    final n = await AyetSes.eksikSayisi(_kari, _liste);
+    if (mounted) setState(() => _eksik = n);
+  }
+
+  Future<void> _indir() async {
+    final l = _liste;
+    _iptal = false;
+    setState(() => _iniyor = 0);
+    final hata = await AyetSes.indir(_kari, l, (n) {
+      if (mounted) setState(() => _iniyor = n);
+    }, iptal: () => _iptal || !mounted);
+    if (!mounted) return;
+    setState(() => _iniyor = null);
+    await _eksikHesapla();
+    if (!mounted) return;
+    showSnack(context, hata == 0 ? 'Bu bölümün sesleri telefona indirildi, artık internetsiz çalar' : '$hata ayet indirilemedi. İnternet bağlantını kontrol et.');
+  }
 
   @override
   void initState() {
@@ -52,6 +85,7 @@ class _DinleEkraniState extends State<DinleEkrani> {
     _sub = _p.playerStateStream.listen((s) {
       if (s.processingState == ProcessingState.completed) _bitti();
     });
+    _eksikHesapla();
     if (HfAyar.meal) {
       Kuran.meal().then((m) {
         if (mounted) setState(() => _meal = m);
@@ -72,10 +106,11 @@ class _DinleEkraniState extends State<DinleEkrani> {
     super.dispose();
   }
 
-  String _url(int ai, {bool besmele = false}) {
+  /// Ayetin telefondaki ses dosyası (yoksa indirilir, bir dahaki sefere internetsiz çalar).
+  Future<String> _yol(int ai, {bool besmele = false}) async {
     final a = besmele ? (1, 1) : (Kuran.a[ai].s, Kuran.a[ai].n);
-    String u(int n) => n.toString().padLeft(3, '0');
-    return 'https://everyayah.com/data/$_kari/${u(a.$1)}${u(a.$2)}.mp3';
+    final f = await AyetSes.getir(_kari, a.$1, a.$2);
+    return f.path;
   }
 
   Future<void> _cal() async {
@@ -85,7 +120,8 @@ class _DinleEkraniState extends State<DinleEkrani> {
     final a = Kuran.a[ai];
     _besmeleCaliyor = _r == 0 && a.n == 1 && a.s != 1 && a.s != 9 && !_besmeleBitti;
     try {
-      await _p.setUrl(_url(ai, besmele: _besmeleCaliyor));
+      await _p.setFilePath(await _yol(ai, besmele: _besmeleCaliyor));
+      if (_eksik != null && _eksik! > 0) _eksikHesapla();
       await _p.setSpeed(_hiz);
       setState(() => _calar = true);
       _kaydir();
@@ -93,7 +129,7 @@ class _DinleEkraniState extends State<DinleEkrani> {
     } catch (_) {
       if (mounted) {
         setState(() => _calar = false);
-        showSnack(context, 'Ses yüklenemedi. İnternet bağlantını kontrol et.');
+        showSnack(context, 'Bu ayetin sesi telefonda yok ve indirilemedi. İnternet bağlantını kontrol et.');
       }
     }
   }
@@ -195,7 +231,8 @@ class _DinleEkraniState extends State<DinleEkrani> {
                     onChanged: (v) async {
                       if (v == null) return;
                       await SettingsService.prefs.setString('hfKari', v);
-                      setState(() {});
+                      setState(() => _eksik = null);
+                      _eksikHesapla();
                       if (_calar) _cal();
                     },
                   )),
@@ -221,9 +258,29 @@ class _DinleEkraniState extends State<DinleEkrani> {
                 ]),
               ),
               const SizedBox(height: 8),
+              _indirKarti(),
+              const SizedBox(height: 8),
               for (var i = 0; i < widget.ayetler.length; i++) _ayet(i),
               const SizedBox(height: 8),
-              Text('Sesler everyayah.com\'dan çalınır; internet gerekir.',
+              OrnateCard(
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => AudioQuranScreen(startSurah: Kuran.a[widget.ayetler.first].s))),
+                padding: const EdgeInsets.all(14),
+                child: Row(children: [
+                  Icon(Icons.headphones_outlined, color: AppColors.goldLight),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Sure sure dinle', style: AppText.body(15, weight: FontWeight.w700)),
+                      Text('Muhammed el-Fakîh, Mâhir el-Muaykılî, Saad el-Gâmidî ve Türkçe mealli (Hayrettin Küçükdeniz). Telefona indirilir.',
+                          style: AppText.body(12, color: AppColors.muted)),
+                    ]),
+                  ),
+                  Icon(Icons.chevron_right, color: AppColors.muted),
+                ]),
+              ),
+              const SizedBox(height: 8),
+              Text('Ayet sesleri everyayah.com\'dan bir kez indirilir, sonra telefondan çalar.',
                   textAlign: TextAlign.center, style: AppText.body(12, color: AppColors.muted)),
             ]),
           ),
@@ -260,6 +317,41 @@ class _DinleEkraniState extends State<DinleEkrani> {
           ),
         ]),
       ),
+    );
+  }
+
+  Widget _indirKarti() {
+    final top = _liste.length;
+    final e = _eksik;
+    final iniyor = _iniyor;
+    final String metin;
+    if (iniyor != null) {
+      metin = 'İndiriliyor… $iniyor / $top';
+    } else if (e == null) {
+      metin = 'Telefondaki sesler kontrol ediliyor…';
+    } else if (e == 0) {
+      metin = '✓ Bu bölümün bütün sesleri telefonda (internetsiz çalar)';
+    } else {
+      metin = 'Telefonda ${top - e} / $top ayet sesi var';
+    }
+    return OrnateCard(
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Icon(e == 0 ? Icons.offline_pin_rounded : Icons.download_rounded, color: e == 0 ? AppColors.done : AppColors.goldLight),
+          const SizedBox(width: 10),
+          Expanded(child: Text(metin, style: AppText.body(13.5, weight: FontWeight.w600))),
+          if (iniyor != null)
+            TextButton(onPressed: () => _iptal = true, child: const Text('Durdur'))
+          else if (e != null && e > 0)
+            TextButton(onPressed: _indir, child: const Text('Telefona indir')),
+        ]),
+        if (iniyor != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: LinearProgressIndicator(value: top == 0 ? null : iniyor / top, color: AppColors.gold, backgroundColor: AppColors.inkLine),
+          ),
+      ]),
     );
   }
 

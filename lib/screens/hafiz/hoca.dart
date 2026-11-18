@@ -10,6 +10,7 @@ import '../../services/social_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format.dart';
 import '../../widgets/ornaments.dart';
+import 'bildir.dart';
 import 'canli.dart';
 import 'ilerleme.dart';
 import 'oku.dart';
@@ -108,6 +109,14 @@ class HocaEkrani extends StatelessWidget {
               child: GoldButton(
                   label: 'Hayır', outlined: true, onPressed: () => runGuarded(context, () => HocaService.cevapla(b, false)))),
         ]),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () => suistimalBildir(context, me, b.karsi(me.id), b.karsiAd(me.id), bag: b),
+            icon: Icon(Icons.flag_outlined, size: 18, color: AppColors.muted),
+            label: Text('Bildir', style: AppText.body(13, color: AppColors.muted)),
+          ),
+        ),
       ]),
     );
   }
@@ -168,6 +177,7 @@ class HocaEkrani extends StatelessWidget {
               itemBuilder: (_) => const [
                 PopupMenuItem(value: 'gecmis', child: Text('Bu hocayla geçmiş')),
                 PopupMenuItem(value: 'sil', child: Text('Bağı kaldır')),
+                PopupMenuItem(value: 'bildir', child: Text('Suistimal bildir')),
               ],
             ),
           ]),
@@ -203,6 +213,7 @@ class HocaEkrani extends StatelessWidget {
                 PopupMenuItem(value: 'odev', child: Text('Ödev ver')),
                 PopupMenuItem(value: 'gecmis', child: Text('Bu öğrenciyle geçmiş')),
                 PopupMenuItem(value: 'sil', child: Text('Bağı kaldır')),
+                PopupMenuItem(value: 'bildir', child: Text('Suistimal bildir')),
               ],
             ),
           ]),
@@ -233,7 +244,9 @@ class HocaEkrani extends StatelessWidget {
       );
 
   Future<void> _menu(BuildContext context, Bag b, String v) async {
-    if (v == 'gecmis') {
+    if (v == 'bildir') {
+      await suistimalBildir(context, me, b.karsi(me.id), b.karsiAd(me.id), bag: b);
+    } else if (v == 'gecmis') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => GecmisEkrani(kisiUid: b.karsi(me.id), baslik: b.karsiAd(me.id))));
     } else if (v == 'sil') {
       final ok = await showDialog<bool>(
@@ -359,6 +372,8 @@ Future<void> ekleSayfasi(BuildContext context, AppUser me) async {
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text('Kimi ekliyorsun?', style: AppText.display(22)),
+          const SizedBox(height: 4),
+          Text('Hoca–öğrenci eşleşmesi hanım–hanım ya da bey–bey olarak yapılır.', style: AppText.body(12.5, color: AppColors.muted)),
           const SizedBox(height: 14),
           GoldButton(label: 'Hocamı ekle', icon: Icons.school_outlined, onPressed: () => Navigator.pop(c, false)),
           const SizedBox(height: 10),

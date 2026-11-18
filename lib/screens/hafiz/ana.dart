@@ -19,11 +19,11 @@ import '../../widgets/guest.dart';
 import '../../widgets/ornaments.dart';
 import '../../widgets/prayer_card.dart';
 import '../admin_screen.dart';
+import '../audio_quran_screen.dart';
 import '../friends_screen.dart';
 import '../profile_screen.dart';
 import '../qibla_screen.dart';
 import '../settings_screen.dart';
-import '../sources_screen.dart';
 import '../support_screen.dart';
 import 'bul.dart';
 import 'canli.dart';
@@ -68,7 +68,7 @@ class _HafizAnaState extends State<HafizAna> {
   void _ac(Widget w) => Navigator.push(context, MaterialPageRoute(builder: (_) => w));
 
   void _ezber(String mod) => _ac(SecEkrani(
-        baslik: mod == 'kardes' ? 'Kardeşime Dinlet' : 'Ezber Dinlet',
+        baslik: mod == 'kardes' ? 'Kardeşime Dinlet' : 'Ezber Oku',
         onSec: (c, l) => Navigator.push(c, MaterialPageRoute(builder: (_) => OkuEkrani(ayetler: l, mod: mod))),
       ));
 
@@ -183,7 +183,7 @@ class _AnaSekme extends StatelessWidget {
         final son = k.gecmis.where((o) => o.tur == 'ses' || o.tur == 'kardes').firstOrNull;
         final odevler = baglar.where((b) => b.durum == 'kabul' && b.ogrenci == me.id && b.odev != null).toList();
         final tiles = <(IconData, String, String, VoidCallback)>[
-          (Icons.mic_rounded, 'Ezber Dinlet', 'Uygulama dinler', () => ezber('ses')),
+          (Icons.mic_rounded, 'Ezber Oku', 'Uygulama dinler', () => ezber('ses')),
           (Icons.handshake_outlined, 'Kardeşime Dinlet', 'Yanındaki işaretler', () => ezber('kardes')),
           (Icons.record_voice_over_outlined, 'Hocama Dinlet', 'Uzaktan, canlı', () => _hocama(context)),
           (Icons.headphones_rounded, 'Dinle & Tekrarla', 'Ayet ayet', () => ac(SecEkrani(
@@ -405,40 +405,70 @@ class _DahaSekme extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = <(IconData, String, VoidCallback, int)>[
-      if (!me.isGuest) (Icons.person_outline, 'Profilim', () => ac(ProfileScreen(me: me)), 0),
-      (Icons.tune, 'Ezber ayarları', () => ac(const HafizAyarEkrani()), 0),
-      (Icons.cloud_outlined, 'Yedekleme (Google Drive / iCloud)', () => ac(const YedekEkrani()), 0),
-      (Icons.explore_outlined, 'Kıble pusulası', () => ac(const QiblaScreen()), 0),
-      (Icons.settings_outlined, 'Ayarlar (tema, dil, ezan vakitleri)', () => ac(const SettingsScreen()), 0),
-      (Icons.volunteer_activism_outlined, 'Destek ve İletişim', () => ac(SupportScreen(me: me)), destek),
-      (Icons.help_outline, 'Nasıl kullanılır', () => ac(const YardimEkrani()), 0),
-      (Icons.menu_book_outlined, 'Kaynakça', () => ac(const SourcesScreen()), 0),
-      if (AuthService.isAdmin) (Icons.admin_panel_settings_outlined, 'Yönetim', () => ac(AdminScreen(me: me)), 0),
-      (Icons.logout, me.isGuest ? 'Üye ol / giriş yap' : 'Çıkış yap', () => confirmLogout(context), 0),
+    // Konulara göre gruplanmış sade liste. Kaynakça, Destek ve İletişim sayfasının en altında.
+    final gruplar = <(String, List<(IconData, String, VoidCallback, int)>)>[
+      ('HESABIM', [
+        if (!me.isGuest) (Icons.person_outline, 'Profilim', () => ac(ProfileScreen(me: me)), 0),
+        (Icons.cloud_outlined, 'Yedekleme', () => ac(const YedekEkrani()), 0),
+      ]),
+      ('AYARLAR', [
+        (Icons.tune, 'Ezber ayarları (yazı tipi, gizleme)', () => ac(const HafizAyarEkrani()), 0),
+        (Icons.settings_outlined, 'Uygulama ayarları (tema, dil, ezan)', () => ac(const SettingsScreen()), 0),
+      ]),
+      ('KUR\'AN VE NAMAZ', [
+        (Icons.headphones_outlined, 'Sesli Kur\'an (sure sure, mealli)', () => ac(const AudioQuranScreen()), 0),
+        (Icons.explore_outlined, 'Kıble pusulası', () => ac(const QiblaScreen()), 0),
+      ]),
+      ('YARDIM', [
+        (Icons.help_outline, 'Nasıl kullanılır', () => ac(const YardimEkrani()), 0),
+        (Icons.volunteer_activism_outlined, 'Destek ve İletişim', () => ac(SupportScreen(me: me)), destek),
+        if (AuthService.isAdmin) (Icons.admin_panel_settings_outlined, 'Yönetim', () => ac(AdminScreen(me: me)), 0),
+      ]),
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('Daha fazla'), automaticallyImplyLeading: false),
       body: PatternBackground(
-        child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
-          for (final i in items) ...[
-            OrnateCard(
-              onTap: i.$3,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(children: [
-                Icon(i.$1, color: AppColors.goldLight),
-                const SizedBox(width: 14),
-                Expanded(child: Text(i.$2, style: AppText.body(15, weight: FontWeight.w600))),
-                if (i.$4 > 0) _Rozet(i.$4),
-                Icon(Icons.chevron_right, color: AppColors.muted),
-              ]),
-            ),
-            const SizedBox(height: 10),
-          ],
+        child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+          for (final g in gruplar)
+            if (g.$2.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
+                child: Text(g.$1, style: AppText.label(color: AppColors.muted)),
+              ),
+              OrnateCard(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(children: [
+                  for (var k = 0; k < g.$2.length; k++) ...[
+                    if (k > 0) Divider(height: 1, indent: 52, color: AppColors.inkLine),
+                    _satir(g.$2[k]),
+                  ],
+                ]),
+              ),
+            ],
+          const SizedBox(height: 18),
+          TextButton.icon(
+            onPressed: () => confirmLogout(context),
+            icon: Icon(Icons.logout, color: AppColors.muted),
+            label: Text(me.isGuest ? 'Üye ol / giriş yap' : 'Çıkış yap', style: AppText.body(14, color: AppColors.muted)),
+          ),
         ]),
       ),
     );
   }
+
+  Widget _satir((IconData, String, VoidCallback, int) i) => InkWell(
+        onTap: i.$3,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(children: [
+            Icon(i.$1, color: AppColors.goldLight, size: 22),
+            const SizedBox(width: 14),
+            Expanded(child: Text(i.$2, style: AppText.body(15, weight: FontWeight.w600))),
+            if (i.$4 > 0) _Rozet(i.$4),
+            Icon(Icons.chevron_right, color: AppColors.muted),
+          ]),
+        ),
+      );
 }
 
 class _Rozet extends StatelessWidget {
@@ -582,6 +612,10 @@ class _HafizAyarEkraniState extends State<HafizAyarEkrani> {
               ),
               Text(Kuran.hazir ? Kuran.a[0].metin : '', textDirection: TextDirection.rtl, style: arapYazi(HfAyar.yazi)),
               const SizedBox(height: 8),
+              Align(alignment: Alignment.centerLeft, child: Text('AYET YAZI TİPİ', style: AppText.label())),
+              const SizedBox(height: 6),
+              YaziTipiSecici(onChanged: () => setState(() {})),
+              const SizedBox(height: 12),
               Align(alignment: Alignment.centerLeft, child: Text('VARSAYILAN GİZLEME', style: AppText.label())),
               const SizedBox(height: 6),
               const GizlemeSecici(),
@@ -756,9 +790,9 @@ class YardimEkrani extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = <(String, String)>[
-      ('🎙️ Ezber Dinlet', 'Sure, cüz ya da sayfa seç. Ayetler gizli gelir. Mikrofona dokun ve ezberden oku: doğru okuduğun kelimeler açılır, yanlışlar kırmızı, atladıkların turuncu olur. Takılırsan İpucu ile sıradaki kelimeyi gör. Tanıma bir kelimeyi kaçırırsa "Doğru say"a bas. Açılmış bir kelimeye dokunarak düzeltebilirsin.'),
+      ('🎙️ Ezber Oku', 'Sure, cüz ya da sayfa seç. Ayetler gizli gelir. Mikrofona dokun ve ezberden oku: doğru okuduğun kelimeler açılır, yanlışlar kırmızı, atladıkların turuncu olur. Takılırsan İpucu ile sıradaki kelimeyi gör. Tanıma bir kelimeyi kaçırırsa "Doğru say"a bas. Açılmış bir kelimeye dokunarak düzeltebilirsin.'),
       ('🤝 Kardeşime Dinlet', 'Telefonu yanındaki arkadaşın tutar, sen ezberden okursun; o her kelimede Doğru ya da Hata\'ya basar. İnternet ve mikrofon gerekmez.'),
-      ('🎓 Hocama Dinlet', 'Hoca – Öğrenci sekmesinde hocanı ekle (arkadaş listenden ya da 6 haneli kodla). Hocana "Hoca olarak kabul ediyor musun?" diye sorulur. Kabul edince hocana canlı ders daveti gönderebilirsin: sen kendi telefonunda gizli ayetlerle okursun, hocan kendi telefonunda metni açık görür ve işaretler. Sesi duymak için birbirinizi telefonla ya da WhatsApp\'tan arayın.'),
+      ('🎓 Hocama Dinlet', 'Hoca – Öğrenci sekmesinde hocanı ekle (arkadaş listenden ya da 6 haneli kodla). Hocana "Hoca olarak kabul ediyor musun?" diye sorulur. Kabul edince hocana canlı ders daveti gönderebilirsin: sen kendi telefonunda gizli ayetlerle okursun, hocan kendi telefonunda metni açık görür ve işaretler. Sesi duymak için birbirinizi telefonla ya da WhatsApp\'tan arayın. Eşleşme yalnızca hanım–hanım ya da bey–bey olur. Uygunsuz bir durum olursa kişinin menüsünden ya da canlı derste bayrak simgesinden “Suistimal bildir”e dokun.'),
       ('👨‍🏫 Hocaysan', 'Öğrencilerini ekle, "Canlı dinle" ile derse çağır, ödev ver, not yaz. Her ders iki tarafın ders geçmişine kaydedilir.'),
       ('🔁 Tekrar takvimi', 'İyi okuduğun ayetler 1, 3, 7, 14, 30, 60 gün arayla tekrar karşına çıkar; zorlandıkların ertesi gün gelir. Ana sayfadaki "Bugünün tekrarı" bunları toplar.'),
       ('🎧 Dinle & Tekrarla', 'Kâri seç, her ayeti istediğin kadar tekrarlat. "Ardından ben tekrar edeyim" açıksa her ayetten sonra senin okuman için bekler.'),

@@ -18,6 +18,7 @@ class Ses {
   /// Son kısmi sonucun kelimeleri: tanıma kesin sonuç vermeden durursa son kelime kaybolmasın.
   static List<String> _sonTk = const [];
   static void Function(String kelime)? _kelime;
+  static bool Function(String kelime)? _dene;
   static void Function(String metin)? _canli;
   static void Function(String hata)? _hata;
   static final acik = ValueNotifier<bool>(false);
@@ -38,10 +39,12 @@ class Ses {
   /// Dinlemeyi başlatır. [kelime]: kesinleşen her kelime, [canli]: ekranda gösterilecek anlık metin.
   static Future<bool> baslat({
     required void Function(String kelime) kelime,
+    bool Function(String kelime)? dene,
     void Function(String metin)? canli,
     void Function(String hata)? hata,
   }) async {
     _kelime = kelime;
+    _dene = dene;
     _canli = canli;
     _hata = hata;
     if (!await hazirla()) {
@@ -49,15 +52,37 @@ class Ses {
       return false;
     }
     _istek = true;
+    _sonucsuz = 0;
+    _buOturumdaSonuc = true;
     acik.value = true;
     await _dinle();
     return true;
+  }
+
+  /// Telefonun kendi (çevrimdışı) tanıması: internete gidip gelmediği için çok daha hızlıdır.
+  /// Telefonda Arapça çevrimdışı paket yoksa kendiliğinden internetli tanımaya geçilir.
+  static bool _cihazda = true;
+  static bool get cihazda => _cihazda && (SettingsService.prefs.getBool('hfCihazda') ?? true);
+  static int _sonucsuz = 0;
+  static bool _buOturumdaSonuc = false;
+
+  static void _cihazdaKapat() {
+    if (!_cihazda) return;
+    _cihazda = false;
+    debugPrint('Ses: cihaz içi tanıma kullanılamıyor, internetli tanımaya geçildi');
   }
 
   static Future<void> _dinle() async {
     if (!_istek) return;
     _off = 0;
     _sonTk = const [];
+    if (cihazda && !_buOturumdaSonuc) {
+      // Cihaz içi tanıma art arda sonuç vermiyorsa (paket yok) internetli tanımaya geç.
+      if (++_sonucsuz >= 3) _cihazdaKapat();
+    } else {
+      _sonucsuz = 0;
+    }
+    _buOturumdaSonuc = false;
     try {
       await _s.listen(
         onResult: _sonuc,
@@ -68,6 +93,7 @@ class Ses {
           partialResults: true,
           cancelOnError: false,
           listenMode: stt.ListenMode.dictation,
+          onDevice: cihazda,
         ),
       );
     } catch (_) {
@@ -106,6 +132,11 @@ class Ses {
   static void _onHata(SpeechRecognitionError e) {
     final m = e.errorMsg;
     _bosalt();
+    if (cihazda && (m.contains('language') || m.contains('not_supported') || m.contains('unavailable') || m.contains('server'))) {
+      _cihazdaKapat();
+      _yeniden(150);
+      return;
+    }
     if (m.contains('no_match') || m.contains('speech_timeout') || m.contains('busy') || m.contains('client')) {
       _yeniden(m.contains('busy') ? 400 : 150);
       return;
@@ -120,7 +151,10 @@ class Ses {
 
   static void _sonuc(SpeechRecognitionResult r) {
     final metin = r.recognizedWords.trim();
-    _canli?.call(metin);
+    if (metin.isNotEmpty) {
+      _buOturumdaSonuc = true;
+      _sonucsuz = 0;
+    }
     final tk = metin.split(RegExp(r'\s+')).where((x) => x.isNotEmpty).toList();
     final kadar = r.finalResult ? tk.length : tk.length - 1;
     for (var i = _off; i < kadar; i++) {
@@ -135,12 +169,20 @@ class Ses {
     } else {
       _sonTk = tk;
       if (kadar > _off) _off = kadar;
+      // Gecikmesin: henüz kesinleşmemiş son kelime sıradaki kelimeye çok benziyorsa hemen kabul edilir.
+      if (_dene != null && tk.isNotEmpty && _off == tk.length - 1 && _dene!(tk.last)) _off = tk.length;
     }
+    _canli?.call(metin);
   }
 
-  static Future<void> durdur() async {
-    if (_istek) _bosalt();
+  /// [bosalt]: bekleyen son kelime işlensin mi (ekran kapanırken false).
+  /// Durduktan sonra gelen geç sonuçlar kapanmış ekrana gitmesin diye geri çağırmalar silinir.
+  static Future<void> durdur({bool bosalt = true}) async {
+    if (_istek && bosalt) _bosalt();
     _istek = false;
+    _kelime = null;
+    _dene = null;
+    _canli = null;
     _t?.cancel();
     acik.value = false;
     try {

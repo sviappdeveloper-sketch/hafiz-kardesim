@@ -8,7 +8,7 @@ Kur'an ezberini dinletme uygulaması. Hatim Kardeşim'in yapısıyla (Flutter + 
 
 | Bölüm | Ne yapar |
 |---|---|
-| 🎙️ Ezber Dinlet | Ayetler gizli; sen okursun, uygulama Arapça ses tanımayla dinler, doğruyu açar, hatalıyı kırmızı, atlananı turuncu işaretler. İpucu, ayeti aç, doğru say, geri al. |
+| 🎙️ Ezber Oku | Ayetler gizli; sen okursun, uygulama Arapça ses tanımayla dinler, doğruyu açar, hatalıyı kırmızı, atlananı turuncu işaretler. İpucu, ayeti aç, doğru say, geri al. |
 | 🤝 Kardeşime Dinlet | Yanındaki arkadaş her kelimede Doğru / Hata / Hatırlat'a basar. Mikrofon ve internet gerekmez. |
 | 🎓 Hocama Dinlet (canlı) | Öğrenci kendi telefonunda gizli ayetlerle okur, hoca kendi telefonunda metni açık görür ve işaretler; işaretler iki telefona anında gider. Ses telefon / WhatsApp aramasıyla duyulur. |
 | Hoca – Öğrenci çalışma alanı | Arkadaş listesinden ya da 6 haneli kodla istek: "Hoca olarak kabul ediyor musun?" / "Öğrenci olarak kabul ediyor musun?". Kabul edince: canlı ders, ödev verme, not, son ders bilgisi, kişiye göre geçmiş. |

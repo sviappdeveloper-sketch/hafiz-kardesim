@@ -14,16 +14,93 @@ class HfAyar {
   static Future<void> setGizle(String v) => SettingsService.prefs.setString('hfGizle', v);
   static bool get besmele => SettingsService.prefs.getBool('hfBesmele') ?? true;
   static Future<void> setBesmele(bool v) => SettingsService.prefs.setBool('hfBesmele', v);
+  static String get font => SettingsService.prefs.getString('hfFont') ?? 'Amiri Quran';
+  static Future<void> setFont(String v) => SettingsService.prefs.setString('hfFont', v);
   static bool get meal => SettingsService.prefs.getBool('hfMeal') ?? true;
   static Future<void> setMeal(bool v) => SettingsService.prefs.setBool('hfMeal', v);
 }
 
+/// Ayet yazı tipleri: (Google Fonts adı, ekranda görünen ad, satır yüksekliği).
+const arapYaziTipleri = [
+  ('Amiri Quran', 'Mushaf (Amiri Kur\'an)', 2.05),
+  ('Scheherazade New', 'Şehrazat (iri, okunaklı)', 1.9),
+  ('Noto Naskh Arabic', 'Nesih (sade)', 1.95),
+  ('Amiri', 'Amiri (klasik nesih)', 2.0),
+  ('Lateef', 'Latif (yumuşak)', 1.85),
+  ('Markazi Text', 'Merkezî (ince)', 1.9),
+];
+
+final _yaziOnbellek = <String, TextStyle>{};
+
+/// Ayet yazısı. Her kelime için yeniden yazı tipi aranmasın diye stiller önbellekte tutulur
+/// (uzun bölümlerde ekranın kasmasını önler).
 TextStyle arapYazi(double size, {Color? color}) {
   final c = color ?? AppColors.ivory;
+  final ad = HfAyar.font;
+  final anahtar = '$ad|$size';
+  final hazir = _yaziOnbellek[anahtar];
+  if (hazir != null) return hazir.copyWith(color: c);
+  final tip = arapYaziTipleri.firstWhere((t) => t.$1 == ad, orElse: () => arapYaziTipleri.first);
+  TextStyle st;
   try {
-    return GoogleFonts.getFont('Amiri Quran', fontSize: size, color: c, height: 2.05);
+    st = GoogleFonts.getFont(tip.$1, fontSize: size, height: tip.$3);
   } catch (_) {
-    return GoogleFonts.amiri(fontSize: size, color: c, height: 2.0);
+    st = GoogleFonts.amiri(fontSize: size, height: 2.0);
+  }
+  _yaziOnbellek[anahtar] = st;
+  return st.copyWith(color: c);
+}
+
+/// Ayet yazı tipi seçici.
+class YaziTipiSecici extends StatefulWidget {
+  const YaziTipiSecici({super.key, this.onChanged});
+  final VoidCallback? onChanged;
+  @override
+  State<YaziTipiSecici> createState() => _YaziTipiSeciciState();
+}
+
+class _YaziTipiSeciciState extends State<YaziTipiSecici> {
+  @override
+  Widget build(BuildContext context) {
+    final sec = HfAyar.font;
+    return SizedBox(
+      height: 92,
+      child: ListView(scrollDirection: Axis.horizontal, children: [
+        for (final t in arapYaziTipleri)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () async {
+                await HfAyar.setFont(t.$1);
+                setState(() {});
+                widget.onChanged?.call();
+              },
+              child: Container(
+                width: 118,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.inkDeep.withValues(alpha: .45),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: sec == t.$1 ? AppColors.gold : AppColors.inkLine, width: sec == t.$1 ? 2 : 1),
+                ),
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text('بِسْمِ ٱللَّهِ', maxLines: 1, textDirection: TextDirection.rtl, style: _onizleme(t.$1)),
+                  Text(t.$2, maxLines: 2, textAlign: TextAlign.center, style: AppText.body(11, color: AppColors.muted, height: 1.15)),
+                ]),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+
+  TextStyle _onizleme(String ad) {
+    try {
+      return GoogleFonts.getFont(ad, fontSize: 20, color: AppColors.ivory, height: 1.5);
+    } catch (_) {
+      return GoogleFonts.amiri(fontSize: 20, color: AppColors.ivory, height: 1.5);
+    }
   }
 }
 
