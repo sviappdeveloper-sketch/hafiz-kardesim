@@ -24,8 +24,13 @@ jobs:
           done
           ls -la /tmp/ses
       - name: Yokla
-        env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }
-        run: python tool/model_yokla.py || true
+        env:
+          HF_TOKEN: "${{ secrets.HF_TOKEN || vars.HF_TOKEN }}"
+          S1: "${{ secrets.HF_TOKEN }}"
+          V1: "${{ vars.HF_TOKEN }}"
+        run: |
+          echo "secret uzunluk: ${#S1}  variable uzunluk: ${#V1}" | tee /tmp/o/anahtar.txt
+          python tool/model_yokla.py || true
       - name: Raporu 'log-model' dalına yaz
         if: always()
         run: |
