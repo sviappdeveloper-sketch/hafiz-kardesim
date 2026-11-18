@@ -228,7 +228,9 @@ class Ses {
       // …ama sıradaki kelimeye benziyorsa beklenmez, hemen ekrana gelir (Tarteel gibi anında).
       if (_dene != null && tk.isNotEmpty && _giden.length == tk.length - 1 && _dene!(tk.last)) _giden = tk;
     }
-    _canli?.call(metin);
+    // Kısmi sonuçta son kelime çoğu zaman ses tanımanın tahminidir: okunmamış kelime alttaki
+    // satırda görünmesin diye yalnızca kesinleşen kısım gösterilir.
+    _canli?.call(r.finalResult ? metin : tk.take(math.max(0, tk.length - 1)).join(' '));
   }
 
   /// [bosalt]: bekleyen son kelime işlensin mi (ekran kapanırken false).

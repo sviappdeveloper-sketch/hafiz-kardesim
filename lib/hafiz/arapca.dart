@@ -47,12 +47,16 @@ double rat(String a, String b) {
   return l == 0 ? 0 : 1 - lev(a, b) / l;
 }
 
+/// İskelet (uzatma harfleri atılmış) karşılaştırmasının ağırlığı. Kısa iskeletlerin uzunluğu farklıysa
+/// aradaki fark bir ünsüz demektir (ör. والله / الصلوة): o zaman benzerlik daha az sayılır.
+double _iskeletKatsayi(String a, String b) => a.length != b.length && math.min(a.length, b.length) <= 4 ? .97 * .9 : .97;
+
 /// Duyulan (normalize edilmiş) [h] ile beklenen kelimenin benzerliği (0–1).
 double sim(String h, Kelime w) {
   var r = rat(h, w.n);
   if (w.k.length >= 2) {
     final k = skel(h);
-    if (k.length >= 2) r = math.max(r, rat(k, w.k) * .97);
+    if (k.length >= 2) r = math.max(r, rat(k, w.k) * _iskeletKatsayi(k, w.k));
   }
   return r;
 }
@@ -112,13 +116,22 @@ List<Kelime> kelimeler(List<int> ayetler, String Function(int ai) metin, int Fun
   return w;
 }
 
-/// Duyulan kelimeleri sıradaki beklenen kelimelerle eşleştirir.
+/// Hafız Kardeşim eşleştiricisi: "onaylı ilerleme".
+///
+/// Duyulan kelime sıradaki kelimeyse hemen doğru sayılır. Değilse hiçbir kelime açılmaz, hata da
+/// sayılmaz: duyulan kelime bekletilir. Okuyucunun ileride nerede olduğu ancak güçlü bir "çapa"
+/// ile kesinleşince (art arda iki kelime ya da uzun, ayırt edici bir kelime) aradaki kelimeler
+/// işlenir: bekleyenlerde karşılığı olan doğru, olmayan atlandı/hatalı sayılır.
+/// Böylece ses tanımanın uydurduğu ya da yanlış duyduğu kelimeler okunmamış yeri açmaz,
+/// okuyucu doğru okuduğu hâlde art arda hata yazılmaz.
 class Eslestirici {
   Eslestirici(this.w);
   final List<Kelime> w;
   int cur = 0;
-  String _buf = '', _lh = '';
-  int _miss = 0, _mq = 0;
+  String _buf = '';
+  int _mq = 0;
+  /// Yeri henüz bulunamayan duyulan kelimeler (normalize ve ham hâli).
+  final List<String> _bek = [], _bekHam = [];
 
   bool get bitti => cur >= w.length;
 
@@ -134,20 +147,18 @@ class Eslestirici {
   }
 
   /// Henüz kesinleşmemiş (kısmi sonuçtaki son) kelimeyi dener: sıradaki kelimeye çok benziyorsa
-  /// hemen doğru sayar, böylece ses tanımanın kelimeyi kesinleştirmesi beklenmez. Değişen dizinler
-  /// ya da eşleşme yoksa null döner.
+  /// hemen doğru sayar. Ses tanıma kısmi sonuçta kelimeyi tahminle tamamlayabildiği için yalnızca
+  /// okuyucunun yeri kesinken ve benzerlik yüksekken kabul edilir. Eşleşme yoksa null döner.
   List<int>? dene(String raw) {
     if (bitti) return null;
     final x = w[cur];
-    if (x.muq) return null;
+    if (x.muq || _bek.isNotEmpty) return null;
     final h = nrm(raw);
-    if (h.length < 2) return null;
+    if (h.length < 3) return null;
     final son = cur == w.length - 1;
-    final esik = son ? .72 : .8;
+    final esik = son ? .75 : .85;
     final aday = [h, if (_buf.isNotEmpty) _buf + h];
-    // Kelime henüz yazılırken (kısmi) baş tarafı yeterince uzunsa da kabul: yazı sesle birlikte gelsin.
-    bool basi(String a) => a.length >= 3 && x.n.length >= 4 && x.n.startsWith(a) && a.length * 4 >= x.n.length * 3;
-    if (!aday.any((a) => sim(a, x) >= esik || basi(a))) return null;
+    if (!aday.any((a) => sim(a, x) >= esik)) return null;
     final once = cur;
     final d = <int>[];
     if (x.st == KD.gizli) {
@@ -155,9 +166,7 @@ class Eslestirici {
       x.h = raw;
       d.add(cur);
     }
-    _buf = '';
-    _miss = 0;
-    _lh = '';
+    sifirlaTampon();
     cur++;
     for (var i = once; i < cur; i++) {
       if (w[i].end) d.addAll(lafizToleransi(w, w[i].li));
@@ -203,6 +212,7 @@ class Eslestirici {
         if (sim(h, x) >= .7 || _mq >= x.n.length) {
           isaret(c, x.st == KD.ipucu ? KD.ipucu : KD.dogru, raw);
           _mq = 0;
+          sifirlaTampon();
           ilerle(1);
         }
         return degisen;
@@ -210,73 +220,134 @@ class Eslestirici {
       if (_mq > 0) {
         isaret(c, KD.dogru);
         _mq = 0;
+        sifirlaTampon();
         ilerle(1);
         degisen.addAll(besle(raw));
         return degisen;
       }
     }
+    // 1) Sıradaki kelime.
     final aday = [h, if (_buf.isNotEmpty) _buf + h];
     // Son kelimede ses tanıma çoğu zaman kelimeyi yarım ya da vakıfla duyar: biraz daha hoşgörülü ol.
     final sonKelime = c == w.length - 1;
     for (final a in aday) {
       if (sim(a, x) >= (sonKelime ? .6 : .7) || (sonKelime && a.length >= 2 && x.n.startsWith(a) && a.length * 10 >= x.n.length * 6)) {
         if (x.st == KD.gizli) isaret(c, KD.dogru, raw);
-        _buf = '';
-        _miss = 0;
-        _lh = '';
+        sifirlaTampon();
         ilerle(1);
         return degisen;
       }
     }
-    // başta (ya da yeni sure başında) eûzü-besmele: yok say
-    if ((c == 0 || x.sureBasi) && girisKelimeleri.contains(h)) return degisen;
-    // atlanan kelimeler: ileride (en çok 3) eşleşme var mı
-    for (var j = 1; j <= 3 && c + j < w.length; j++) {
-      final y = w[c + j];
-      if (y.n.length >= 2 && sim(h, y) >= .84) {
-        for (var z = c; z < c + j; z++) {
-          if (w[z].st == KD.gizli) {
-            final yanlis = z == c && _miss > 0;
-            isaret(z, yanlis ? KD.hata : KD.atla, yanlis ? _lh : '');
-          }
-        }
-        isaret(c + j, KD.dogru, raw);
-        _buf = '';
-        _miss = 0;
-        _lh = '';
-        ilerle(j + 1);
-        return degisen;
-      }
-    }
-    // tekrar edilen önceki kelime: yok say
-    if (c > 0 && sim(h, w[c - 1]) >= .8) {
-      _buf = '';
+    // 2) İki kelime bitişik duyuldu (ör. "لله رب" → "للهرب").
+    if (c + 1 < w.length && h.length >= 4 && simMetin(h, x.n + w[c + 1].n) >= .8) {
+      if (x.st == KD.gizli) isaret(c, KD.dogru, raw);
+      if (w[c + 1].st == KD.gizli) isaret(c + 1, KD.dogru, raw);
+      sifirlaTampon();
+      ilerle(2);
       return degisen;
     }
-    // kelimenin ilk parçası olabilir (ör. يا + ايها)
+    // 3) Başta (ya da yeni sure başında) eûzü-besmele: yok say.
+    if ((c == 0 || x.sureBasi) && girisKelimeleri.contains(h)) return degisen;
+    // 4) Tekrar edilen önceki kelime (ileride de geçmiyorsa): yok say.
+    var ileride = false;
+    for (var j = 1; j <= 3 && c + j < w.length; j++) {
+      if (sim(h, w[c + j]) >= .8) ileride = true;
+    }
+    if (!ileride) {
+      for (var j = 1; j <= 3 && c - j >= 0; j++) {
+        if (w[c - j].n.length >= 2 && sim(h, w[c - j]) >= .8) {
+          _buf = '';
+          return degisen;
+        }
+      }
+    }
+    // 5) Kelimenin ilk parçası olabilir (ör. يا + ايها).
     if (_buf.isEmpty && x.n.startsWith(h) && h.length < x.n.length) {
       _buf = h;
       return degisen;
     }
-    _buf = h;
-    _miss++;
-    if (_miss >= 2) {
-      isaret(c, KD.hata, _lh.isNotEmpty ? '$_lh $raw' : raw);
-      _miss = 0;
-      _buf = '';
-      _lh = '';
-      ilerle(1);
-    } else {
-      _lh = raw;
+    // 6) Bekletilir; ileride güçlü bir çapa aranır.
+    _buf = '';
+    _bek.add(h);
+    _bekHam.add(raw);
+    if (_bek.length > 8) {
+      _bek.removeAt(0);
+      _bekHam.removeAt(0);
+    }
+
+    /// [bas, bit) arası kelimeler: çapadan önce duyulup karşılığı bulunanlar doğru,
+    /// kalanların ilki (fazladan duyulan varsa) hatalı, diğerleri atlandı.
+    void aradakiler(int bas, int bit, List<String> once) {
+      final kalanDuyulan = List<String>.of(once);
+      final kalan = <int>[];
+      for (var z = bas; z < bit; z++) {
+        var en = -1;
+        var ep = 0.0;
+        for (var m = 0; m < kalanDuyulan.length; m++) {
+          final p = sim(nrm(kalanDuyulan[m]), w[z]);
+          if (p > ep) {
+            ep = p;
+            en = m;
+          }
+        }
+        if (en >= 0 && ep >= .7) {
+          if (w[z].st == KD.gizli) isaret(z, KD.dogru, kalanDuyulan[en]);
+          kalanDuyulan.removeAt(en);
+        } else {
+          kalan.add(z);
+        }
+      }
+      for (var m = 0; m < kalan.length; m++) {
+        final z = kalan[m];
+        if (w[z].st != KD.gizli) continue;
+        if (m == 0 && kalanDuyulan.isNotEmpty) {
+          isaret(z, KD.hata, kalanDuyulan.join(' '));
+        } else {
+          isaret(z, KD.atla, '');
+        }
+      }
+    }
+
+    for (var j = 1; j <= 6 && c + j < w.length; j++) {
+      final y = w[c + j];
+      // Tek kelimelik çapa: yakında, uzun ve neredeyse aynı duyulmuş kelime.
+      if (j <= 2 && y.n.length >= 5 && sim(h, y) >= .9) {
+        aradakiler(c, c + j, _bekHam.sublist(0, _bekHam.length - 1));
+        isaret(c + j, KD.dogru, raw);
+        sifirlaTampon();
+        cur = c + j + 1;
+        return degisen;
+      }
+      // İki kelimelik çapa: son iki duyulan, art arda iki kelimeye uyuyor.
+      if (_bek.length >= 2 && j >= 2) {
+        final p = w[c + j - 1];
+        if (sim(_bek[_bek.length - 2], p) >= .75 && sim(h, y) >= .75 && p.n.length + y.n.length >= 6) {
+          final onceki = _bekHam[_bekHam.length - 2];
+          aradakiler(c, c + j - 1, _bekHam.sublist(0, _bekHam.length - 2));
+          isaret(c + j - 1, KD.dogru, onceki);
+          isaret(c + j, KD.dogru, raw);
+          sifirlaTampon();
+          cur = c + j + 1;
+          return degisen;
+        }
+      }
     }
     return degisen;
   }
 
   void sifirlaTampon() {
     _buf = '';
-    _miss = 0;
-    _lh = '';
+    _bek.clear();
+    _bekHam.clear();
   }
+}
+
+/// İki normalize yazımın benzerliği (iskelet karşılaştırması dahil).
+double simMetin(String h, String n) {
+  var r = rat(h, n);
+  final k = skel(n), hk = skel(h);
+  if (k.length >= 2 && hk.length >= 2) r = math.max(r, rat(hk, k) * _iskeletKatsayi(hk, k));
+  return r;
 }
 
 /// Lafız toleransı oranı: ayetin harflerinin %10'una kadar hata, ayeti doğru saydırır.

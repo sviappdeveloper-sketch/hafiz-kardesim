@@ -142,4 +142,49 @@ void main() {
     expect(e.dene('الرحي'), isNotNull);
     expect(e.bitti, isTrue);
   });
+
+  const bakara = [
+    'ٱلَّذِينَ يُؤْمِنُونَ بِٱلْغَيْبِ وَيُقِيمُونَ ٱلصَّلَوٰةَ وَمِمَّا رَزَقْنَٰهُمْ يُنفِقُونَ',
+    'وَٱلَّذِينَ يُؤْمِنُونَ بِمَآ أُنزِلَ إِلَيْكَ وَمَآ أُنزِلَ مِن قَبْلِكَ وَبِٱلْءَاخِرَةِ هُمْ يُوقِنُونَ',
+  ];
+
+  test('Ses tanımanın uydurduğu kelimeler okunmamış yeri açmaz', () {
+    final w = _w(bakara);
+    final e = Eslestirici(w);
+    for (final k in 'الذين يؤمنون بالغيب ويقيمون كتاب سلام عظيم والله'.split(' ')) {
+      e.besle(k);
+    }
+    expect(e.cur, 4);
+    expect(w.skip(4).every((k) => k.st == KD.gizli), isTrue);
+  });
+
+  test('Araya karışan gürültü hata saydırmaz', () {
+    final w = _w(bakara);
+    final e = Eslestirici(w);
+    for (final k in 'الذين يؤمنون كتاب بالغيب سلام ويقيمون الصلاه'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w).substring(0, 5), 'OOOOO');
+    expect(w.skip(5).every((k) => k.st == KD.gizli), isTrue);
+  });
+
+  test('Yanlış okunan kelime, okumaya devam edilince hatalı sayılır', () {
+    final w = _w(bakara);
+    final e = Eslestirici(w);
+    for (final k in 'الذين يؤمنون بالغيب ويقيمون الزكاه ومما رزقناهم'.split(' ')) {
+      e.besle(k);
+    }
+    expect(_durum(w).substring(0, 7), 'OOOOEOO');
+  });
+
+  test('Tekrar okunan kelime ileride de geçiyorsa yer kaymaz', () {
+    final w = _w(bakara);
+    final e = Eslestirici(w);
+    final okunan = 'الذين يؤمنون بالغيب ويقيمون الصلاه ومما رزقناهم ينفقون والذين يؤمنون بما انزل وما انزل من قبلك وبالاخره هم يوقنون';
+    for (final k in okunan.split(' ')) {
+      e.besle(k);
+    }
+    expect(w.every((k) => k.st == KD.dogru), isTrue);
+    expect(e.bitti, isTrue);
+  });
 }

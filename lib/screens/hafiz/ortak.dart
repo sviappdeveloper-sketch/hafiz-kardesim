@@ -200,7 +200,7 @@ class MushafGorunum extends StatelessWidget {
     Widget ayetNoW(int i) {
       final k = w[i];
       // Boş sayfada ayet numarası da ayet okununca belirir.
-      final gorunur = hepsiAcik || (gizle != 'bos' && gizle != 'iz') || k.st != KD.gizli;
+      final gorunur = hepsiAcik || (gizle != 'bos' && gizle != 'iz') || k.st != KD.gizli || k.ai == 0;
       final imzaN = Object.hash(gorunur, ortak);
       final on = onbellek[-1 - i];
       if (on != null && on.$1 == imzaN) return on.$2;
@@ -240,9 +240,10 @@ class MushafGorunum extends StatelessWidget {
           bloklar.add(_bolumEtiketi(a));
           if (a.n == 1) {
             bloklar.add(Text(Kuran.arapAd(a.s), textAlign: TextAlign.center, style: arapYazi(fs * .8, color: vurgu)));
-            if (a.s != 1 && a.s != 9 && HfAyar.besmele) {
-              bloklar.add(Text(Kuran.besmele, textAlign: TextAlign.center, style: arapYazi(fs * .8, color: soluk)));
-            }
+          }
+          // Okumaya besmeleyle girilir: ilk bölümün başında besmele her zaman açıkta durur.
+          if (a.s != 1 && a.s != 9 && (li == 0 || (a.n == 1 && HfAyar.besmele))) {
+            bloklar.add(Text(Kuran.besmele, textAlign: TextAlign.center, style: arapYazi(fs * .8, color: yazi)));
           }
         }
       }
@@ -351,6 +352,10 @@ class MushafGorunum extends StatelessWidget {
           paragrafBitir();
           sayfa!.parcalar.add(_Parca.etiket(k.ai));
         }
+        // Okumaya besmeleyle girilir: ilk bölümün başında besmele her zaman açıkta durur.
+        if (a.s != 1 && a.s != 9 && (li == 0 || (a.n == 1 && HfAyar.besmele))) {
+          sayfa!.parcalar.add(_Parca.besmele());
+        }
       }
       ekle(_Oge(i, false), _olc(k, fs, ts));
       if (k.end) ekle(_Oge(i, true), ayetGenislik);
@@ -380,9 +385,8 @@ class MushafGorunum extends StatelessWidget {
         switch (p.tur) {
           case 0:
             ic.add(_sureBasligi(p.deger, fs));
-            if (p.deger != 1 && p.deger != 9 && HfAyar.besmele) {
-              ic.add(Text(Kuran.besmele, textAlign: TextAlign.center, style: arapYazi(fs * .85, color: yazi)));
-            }
+          case 3:
+            ic.add(Text(Kuran.besmele, textAlign: TextAlign.center, style: arapYazi(fs * .85, color: yazi)));
           case 1:
             ic.add(_bolumEtiketi(Kuran.a[p.deger]));
           default:
@@ -501,7 +505,8 @@ class MushafGorunum extends StatelessWidget {
       };
 
   Widget _kelime(int i, Kelime k, double fs, bool mushaf) {
-    final gizli = k.st == KD.gizli && !hepsiAcik;
+    // Fâtiha'nın besmelesi (1. ayet) okunmadan da açıkta durur.
+    final gizli = k.st == KD.gizli && !hepsiAcik && k.ai != 0;
     final simdiki = i == cur;
     final isaret = mushaf && !gizli ? vurguRengi(k.st) : null;
     final renk = k.st == KD.gizli
@@ -585,8 +590,12 @@ class _Sayfa {
   final parcalar = <_Parca>[];
 }
 
-/// tur 0: sure başlığı (deger = sure), 1: bölüm etiketi (deger = ayet dizini), 2: satırlar.
+/// tur 0: sure başlığı (deger = sure), 1: bölüm etiketi (deger = ayet dizini), 2: satırlar, 3: besmele.
 class _Parca {
+  _Parca.besmele()
+      : tur = 3,
+        deger = 0,
+        satirlar = const [];
   _Parca.sure(this.deger)
       : tur = 0,
         satirlar = const [];
