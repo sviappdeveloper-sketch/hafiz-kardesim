@@ -70,12 +70,23 @@ jobs:
           set -o pipefail
           flutter build appbundle --release --build-number=${{ github.run_number }} 2>&1 | tee /tmp/aab.txt
 
+      - name: AAB'yi derleme eki olarak sakla (Play Store)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HafizKardesim-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+          if-no-files-found: ignore
+
       - name: Dosyaları 'apk' dalına koy
         run: |
           mkdir -p /tmp/cikti
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk /tmp/cikti/HafizKardesim.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk /tmp/cikti/HafizKardesim-armv7.apk || true
-          cp build/app/outputs/bundle/release/app-release.aab /tmp/cikti/HafizKardesim.aab || true
+          # GitHub dalına 100 MB'tan büyük dosya konamaz: büyük AAB yalnızca derleme eki (artifact) olarak kalır.
+          A=build/app/outputs/bundle/release/app-release.aab
+          if [ -f "$A" ] && [ "$(stat -c%s "$A")" -lt 95000000 ]; then cp "$A" /tmp/cikti/HafizKardesim.aab; fi
+          ls -la /tmp/cikti
           (cd android && ./gradlew -q signingReport 2>/dev/null | grep -E "Variant|SHA1|SHA-256" | head -12) > /tmp/cikti/IMZA.txt || true
           cd /tmp/cikti
           echo "surum: $(grep '^version:' $GITHUB_WORKSPACE/pubspec.yaml) derleme: ${{ github.run_number }} commit: ${GITHUB_SHA::7}" > SURUM.txt
