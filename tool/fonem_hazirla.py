@@ -59,23 +59,31 @@ def rat(a, b):
     return 1.0 if m == 0 else 1 - lev(a, b) / m
 
 
-ADIM = [(1, 1), (1, 2), (1, 3), (2, 1), (3, 1), (4, 1)]
+ADIM = [(a, 1) for a in range(1, 8)] + [(1, b) for b in range(2, 6)] + [(2, 2)]
 
 
 def bol(p, parcalar):
-    """Fonem dizisini [parcalar] iskelet uzunlukları oranında böler (hareke ünsüzüyle kalır)."""
-    if len(parcalar) == 1:
+    """Fonem dizisini [parcalar] iskelet uzunlukları oranında böler (hareke ünsüzüyle kalır).
+    Her parça boş olmayan bir dizi alır."""
+    k = len(parcalar)
+    if k == 1:
         return [p]
     sessiz = [i for i, c in enumerate(p) if skel_p(c)]
+    if len(sessiz) < k:
+        sessiz = list(range(len(p)))  # ünsüz az: harf harf bölünür
     n, toplam = len(sessiz), max(1, sum(parcalar))
-    sonuc, bas, birikim = [], 0, 0
-    for x in parcalar[:-1]:
+    if n < k:
+        return [p] + [p[-1:] or p] * (k - 1)
+    kes, birikim, onceki = [], 0, 0
+    for z, x in enumerate(parcalar[:-1]):
         birikim += x
-        if n >= 2:
-            h = min(max(round(n * birikim / toplam), 1), n - 1)
-            poz = max(sessiz[h], bas)
-        else:
-            poz = len(p)
+        h = round(n * birikim / toplam)
+        h = max(h, onceki + 1)
+        h = min(h, n - (k - 1 - z))
+        kes.append(sessiz[h])
+        onceki = h
+    sonuc, bas = [], 0
+    for poz in kes:
         sonuc.append(p[bas:poz])
         bas = poz
     sonuc.append(p[bas:])
@@ -118,7 +126,7 @@ def hizala(W, P):
         if a == 1:
             out.append(''.join(P[j:j + b]))
         else:
-            out.extend(bol(P[j], [max(1, len(sw[i + z])) for z in range(a)]))
+            out.extend(bol(''.join(P[j:j + b]), [max(1, len(sw[i + z])) for z in range(a)]))
     return [out], d[n][m], 'hiza'
 
 
@@ -140,15 +148,19 @@ def main():
         e = o.get(f'{s}:{n}')
         P = e['aya_phonemes_list'] if e else []
         if not P:
-            sonuc.append([''] * len(W))
+            # Fonem yoksa (olmamalı) kelimenin kendi harfleri kullanılır.
+            sonuc.append([nrm(k) for k in W])
             say['yok'] += 1
+            print('  fonem yok:', f'{s}:{n}', W[:6])
             continue
         r, c, tur = hizala(W, P)
         say[tur] += 1
         if r is None:
-            sonuc.append([''] * len(W))
+            sonuc.append([nrm(k) for k in W])
             kotu.append((99, f'{s}:{n}', W, P))
             continue
+        if len(r[0]) != len(W) or any(not x for x in r[0]):
+            print('  uyumsuz:', f'{s}:{n}', len(W), len(r[0]), list(zip(W, r[0]))[:10], P[:8])
         sonuc.append(r[0])
         if tur == 'hiza' and (c / max(1, len(W)) > .35):
             kotu.append((c / len(W), f'{s}:{n}', list(zip(W, r[0]))[:12], P))
