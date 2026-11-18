@@ -1,0 +1,30 @@
+name: Model yoklama
+on:
+  push:
+    branches: [model-yokla]
+permissions:
+  contents: write
+jobs:
+  yokla:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q huggingface_hub onnx numpy sherpa-onnx
+      - name: Deneme sesleri (Fâtiha 1-4, Husarî)
+        run: |
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          mkdir -p /tmp/ses /tmp/o
+          for a in 001001 001002 001003 001004 002002; do
+            curl -fsSL -o /tmp/ses/$a.mp3 https://everyayah.com/data/Husary_128kbps/$a.mp3 && ffmpeg -loglevel error -i /tmp/ses/$a.mp3 -ar 16000 -ac 1 /tmp/ses/$a.wav || true
+          done
+          ls -la /tmp/ses
+      - name: Yokla
+        env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }
+        run: python tool/model_yokla.py || true
+      - name: Raporu 'log-model' dalına yaz
+        if: always()
+        run: |
+          cd /tmp/o && git init -q -b log-model && git config user.name ci && git config user.email ci@x
+          git add . && git commit -qm yokla && git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" log-model
