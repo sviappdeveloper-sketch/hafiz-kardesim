@@ -10,7 +10,7 @@ on:
 permissions:
   contents: write
 env:
-  ASC_KEY_ID: 683B6FR7DT
+  ASC_KEY_ID: M9ATBH23YD
   ASC_ISSUER_ID: 195bfec6-edd0-4a8e-8cd8-6a1d5d51bb6e
   APPLE_TEAM_ID: GS55JS3WKJ
   P12_PASS: hafiz-ci-gecici
