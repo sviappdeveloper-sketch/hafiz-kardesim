@@ -30,7 +30,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: _apiKey,
-    appId: '1:668036405824:ios:56f0fe8e76862989395da5',
+    appId: '1:668036405824:ios:896a1b9264c61284395da5',
     messagingSenderId: _senderId,
     projectId: _projectId,
     storageBucket: _bucket,
