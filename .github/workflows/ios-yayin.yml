@@ -1,0 +1,111 @@
+name: iPhone yayını (TestFlight + App Store sayfası)
+# "ios-yayin" dalına gönderimle çalışır: iPhone paketini derler, imzalar, App Store Connect'e yükler,
+# ardından mağaza sayfasını (metinler, ekran görüntüleri, derleme bağlama) hazırlar. İncelemeye GÖNDERMEZ.
+# "asc-gonder" dalına gönderim: sayfayı yeniden hazırlar ve sürümü Apple incelemesine gönderir.
+# Gizli değerler (Settings > Secrets > Actions): ASC_KEY_P8 (App Store Connect .p8 dosyasının tamamı), HF_TOKEN,
+# isteğe bağlı ASC_TEL (+905xxxxxxxxx, inceleme iletişim telefonu).
+on:
+  push:
+    branches: [ios-yayin, asc-gonder]
+permissions:
+  contents: write
+env:
+  ASC_KEY_ID: 683B6FR7DT
+  ASC_ISSUER_ID: 195bfec6-edd0-4a8e-8cd8-6a1d5d51bb6e
+  APPLE_TEAM_ID: GS55JS3WKJ
+  P12_PASS: hafiz-ci-gecici
+jobs:
+  ios:
+    if: github.ref_name == 'ios-yayin'
+    runs-on: macos-15-intel
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Anahtar var mı?
+        env: { ASC_KEY_P8: "${{ secrets.ASC_KEY_P8 }}" }
+        run: |
+          if [ -z "$ASC_KEY_P8" ]; then echo "::error::ASC_KEY_P8 gizli değeri eklenmemiş"; echo "ASC_KEY_P8 eksik" > /tmp/ios.txt; exit 1; fi
+      - name: Xcode 26 seç
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$X" ] && sudo xcode-select -s "$X/Contents/Developer"; xcodebuild -version | head -1
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter create --org com.sviapp --project-name hafiz_kardesim --platforms android,ios . > /dev/null
+      - run: bash tool/model_indir.sh
+        env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }
+      - run: flutter pub get
+      - run: python3 tool/ci_ios.py
+      - run: dart run flutter_launcher_icons
+      - name: Sertifika ve App Store profili
+        env: { ASC_KEY_P8: "${{ secrets.ASC_KEY_P8 }}" }
+        run: |
+          set -eo pipefail
+          pip3 install --quiet pyjwt cryptography 2>/dev/null || pip3 install --quiet --break-system-packages pyjwt cryptography
+          python3 tool/ios_signing.py 2>&1 | tee /tmp/imza.txt
+          PROFILE_UUID=$(grep '^PROFILE_UUID=' "$GITHUB_ENV" | tail -1 | cut -d= -f2-)
+          PROFILE_NAME=$(grep '^PROFILE_NAME=' "$GITHUB_ENV" | tail -1 | cut -d= -f2-)
+          KC=$RUNNER_TEMP/imza.keychain-db
+          security create-keychain -p gecici "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p gecici "$KC"
+          security import $RUNNER_TEMP/dagitim.p12 -P "$P12_PASS" -A -t cert -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple: -k gecici "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          D="$HOME/Library/MobileDevice/Provisioning Profiles"; mkdir -p "$D"
+          cp $RUNNER_TEMP/profil.mobileprovision "$D/$PROFILE_UUID.mobileprovision"
+          python3 tool/ios_elle_imza.py "$PROFILE_NAME" "$APPLE_TEAM_ID"
+          cat > $RUNNER_TEMP/export.plist <<PL
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key><dict><key>com.sviapp.hafizKardesim</key><string>$PROFILE_NAME</string></dict>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PL
+      - name: iPhone paketi (IPA)
+        run: |
+          set -o pipefail
+          flutter build ipa --release --build-number=$((1000 + ${{ github.run_number }})) \
+            --export-options-plist=$RUNNER_TEMP/export.plist 2>&1 | tee /tmp/ios.txt
+          ls -la build/ios/ipa
+      - name: App Store Connect'e yükle
+        env: { ASC_KEY_P8: "${{ secrets.ASC_KEY_P8 }}" }
+        run: |
+          set -o pipefail
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s\n' "$ASC_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+          xcrun altool --upload-app -f build/ios/ipa/*.ipa -t ios --apiKey $ASC_KEY_ID --apiIssuer $ASC_ISSUER_ID 2>&1 | tee /tmp/yukle.txt
+      - name: Sonucu 'log-ios' dalına yaz
+        if: always()
+        run: |
+          mkdir -p /tmp/l && for f in imza ios yukle; do [ -f /tmp/$f.txt ] && tail -120 /tmp/$f.txt > /tmp/l/$f.txt; done
+          echo "${{ job.status }}" > /tmp/l/DURUM.txt
+          cd /tmp/l && git init -q -b log-ios && git config user.name ci && git config user.email ci@x && git add . && git commit -qm ios
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" log-ios
+
+  sayfa:
+    needs: ios
+    if: always() && (github.ref_name == 'asc-gonder' || needs.ios.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mağaza sayfası${{ github.ref_name == 'asc-gonder' && ' + incelemeye gönder' || '' }}
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_TEL: ${{ secrets.ASC_TEL }}
+          GONDER: ${{ github.ref_name == 'asc-gonder' && 'evet' || '' }}
+        run: |
+          pip3 install --quiet pyjwt cryptography 2>/dev/null || pip3 install --quiet --break-system-packages pyjwt cryptography
+          set -o pipefail
+          python3 tool/asc_islem.py 2>&1 | tee /tmp/asc.txt
+      - name: Sonucu 'log-asc' dalına yaz
+        if: always()
+        run: |
+          mkdir -p /tmp/l && tail -150 /tmp/asc.txt > /tmp/l/asc.txt 2>/dev/null; echo "${{ job.status }}" > /tmp/l/DURUM.txt
+          cd /tmp/l && git init -q -b log-asc && git config user.name ci && git config user.email ci@x && git add . && git commit -qm asc
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" log-asc
