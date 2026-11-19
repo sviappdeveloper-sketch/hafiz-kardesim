@@ -92,6 +92,6 @@ String juzPages(int n) {
 /// Firebase > Authentication > Google sağlayıcısındaki Web istemci kimliği (Google ile giriş için).
 /// iOS için Google OAuth istemci kimliği (Firebase iOS uygulamasının GoogleService-Info.plist'indeki CLIENT_ID).
 /// Boşsa iPhone'da Google ile giriş düğmesi gizlenir; Apple ile giriş kullanılır.
-const googleIosClientId = ''; // Hafız Kardeşim'in iOS istemcisi Firebase'de açılınca yazılır (Hatim'inki başka paket kimliğine bağlı)
+const googleIosClientId = '668036405824-cglilh9j79kjlga0rhj1vssljilhaupr.apps.googleusercontent.com'; // Hafız Kardeşim iOS (GoogleService-Info.plist CLIENT_ID)
 
 const googleWebClientId = '668036405824-9g55rfqdnqhli95h6t3gs103q66jrucs.apps.googleusercontent.com';

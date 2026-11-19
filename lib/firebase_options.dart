@@ -29,12 +29,13 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: _apiKey,
+    apiKey: 'AIzaSyDLB8srGbOs6STeSKD_YMpiIdNE0BDxmIo',
     appId: '1:668036405824:ios:896a1b9264c61284395da5',
     messagingSenderId: _senderId,
     projectId: _projectId,
     storageBucket: _bucket,
     iosBundleId: 'com.sviapp.hafizKardesim',
+    iosClientId: '668036405824-cglilh9j79kjlga0rhj1vssljilhaupr.apps.googleusercontent.com',
   );
 
   static const FirebaseOptions web = FirebaseOptions(
