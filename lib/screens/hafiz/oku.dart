@@ -314,9 +314,12 @@ class _OkuEkraniState extends State<OkuEkrani> {
     await showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.ink,
+      // Ayarların tamamı görünsün (varsayılan yükseklik yarıda kesiyordu); gerekirse kaydırılır.
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * .88),
       builder: (c) => StatefulBuilder(
         builder: (c, ss) => SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Text('Görünüm', style: AppText.display(20)),

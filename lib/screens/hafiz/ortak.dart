@@ -85,36 +85,41 @@ class _YaziTipiSeciciState extends State<YaziTipiSecici> {
   @override
   Widget build(BuildContext context) {
     final sec = HfAyar.font;
-    return SizedBox(
-      height: 92,
-      child: ListView(scrollDirection: Axis.horizontal, children: [
+    // Bütün yazı tipleri ekrana sığsın: yana kaydırmalı şerit yerine 3 sütunlu ızgara.
+    return LayoutBuilder(builder: (context, ks) {
+      const ara = 8.0;
+      final sutun = ks.maxWidth < 300 ? 2 : 3;
+      final gen = (ks.maxWidth - ara * (sutun - 1)) / sutun;
+      return Wrap(spacing: ara, runSpacing: ara, children: [
         for (final t in arapYaziTipleri)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () async {
-                await HfAyar.setFont(t.$1);
-                setState(() {});
-                widget.onChanged?.call();
-              },
-              child: Container(
-                width: 118,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.inkDeep.withValues(alpha: .45),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: sec == t.$1 ? AppColors.gold : AppColors.inkLine, width: sec == t.$1 ? 2 : 1),
-                ),
-                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text('بِسْمِ ٱللَّهِ', maxLines: 1, textDirection: TextDirection.rtl, style: _onizleme(t.$1)),
-                  Text(t.$2, maxLines: 2, textAlign: TextAlign.center, style: AppText.body(11, color: AppColors.muted, height: 1.15)),
-                ]),
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () async {
+              await HfAyar.setFont(t.$1);
+              setState(() {});
+              widget.onChanged?.call();
+            },
+            child: Container(
+              width: gen,
+              constraints: const BoxConstraints(minHeight: 96),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.inkDeep.withValues(alpha: .45),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: sec == t.$1 ? AppColors.gold : AppColors.inkLine, width: sec == t.$1 ? 2 : 1),
               ),
+              child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('بِسْمِ ٱللَّهِ', maxLines: 1, textDirection: TextDirection.rtl, style: _onizleme(t.$1)),
+                ),
+                const SizedBox(height: 4),
+                Text(t.$2, maxLines: 2, textAlign: TextAlign.center, style: AppText.body(11, color: AppColors.muted, height: 1.15)),
+              ]),
             ),
           ),
-      ]),
-    );
+      ]);
+    });
   }
 
   TextStyle _onizleme(String ad) {
