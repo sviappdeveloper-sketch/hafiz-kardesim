@@ -295,6 +295,19 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin, b
   final kac = kBas.length;
   final durum = <int>[], duyulan = <String>[];
   final oran = <double>[];
+  // Ünsüzlerin (hareke dışı seslerin) duyulma oranı: seri okumada harekeler yutulur ama
+  // ünsüzler kalır; başka bir kelime okunduysa ünsüzler de tutmaz.
+  final unsuz = <double>[];
+  double unsuzOran(int a, int b) {
+    var t = 0, ok = 0;
+    for (var z = a; z < b; z++) {
+      if (_hareke(tc[z])) continue;
+      t++;
+      if (esles[z] >= 1) ok++;
+    }
+    return t == 0 ? 1 : ok / t;
+  }
+
   final duydu = <bool>[];
   var ulasilan = gk; // tamamen geçilen kelimeler (metindeki sıra)
   for (var k = gk; k < kac; k++) {
@@ -307,6 +320,7 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin, b
       if (karsi[z] >= 0) rVar = true;
     }
     oran.add(toplam(a, b) / math.max(1, b - a));
+    unsuz.add(unsuzOran(a, b));
     duydu.add(rVar || ek > 0);
     duyulan.add(duyulanAra(a, b));
     ulasilan = k + 1;
@@ -322,6 +336,7 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin, b
       final pay = (uz <= 3 ? 0 : (uz <= 8 ? 1 : 2)) + (kesin ? 1 : 0);
       if (bj >= b - pay && s / uz >= (kesin ? .6 : .72) && dy.isNotEmpty) {
         oran.add(s / uz);
+        unsuz.add(unsuzOran(a, math.min(b, bj)));
         duydu.add(true);
         duyulan.add(dy);
         ulasilan = k + 1;
@@ -336,7 +351,7 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin, b
   // (akıcı okunan) bir kelimenin yarısına yakını duyulduysa ses tanımanın kaçırmasıdır, hata sayılmaz.
   // Başka bir kelime okunduysa benzerlik çok daha düşük kalır ve hata olarak işaretlenir.
   for (var k = 0; k < u; k++) {
-    if (durum[k] != KD.hata || oran[k] < .5) continue;
+    if (durum[k] != KD.hata || oran[k] < .5 || unsuz[k] < .75) continue;
     final once = k == 0 ? (gk > 0 ? 1.0 : 0.0) : oran[k - 1];
     final sonra = k + 1 < u ? oran[k + 1] : 0.0;
     if (once >= .75 && sonra >= .75) durum[k] = KD.dogru;
