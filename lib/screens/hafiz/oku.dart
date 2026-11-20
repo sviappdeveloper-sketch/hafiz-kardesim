@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../hafiz/adpcm.dart';
 import '../../hafiz/arapca.dart';
 import '../../hafiz/fonem.dart';
 import '../../hafiz/hata_sesi.dart';
+import '../../hafiz/hoca_service.dart';
 import '../../hafiz/kayit.dart';
 import '../../hafiz/kulak.dart';
 import '../../hafiz/kuran.dart';
+import '../../hafiz/odev_ses.dart';
 import '../../hafiz/ses.dart';
 import '../../hafiz/yedek.dart';
 import '../../theme/app_theme.dart';
@@ -16,9 +19,11 @@ import 'sonuc.dart';
 
 /// Ezber dinletme: [mod] "ses" (uygulama dinler) ya da "kardes" (yanındaki arkadaş işaretler).
 class OkuEkrani extends StatefulWidget {
-  const OkuEkrani({super.key, required this.ayetler, required this.mod});
+  const OkuEkrani({super.key, required this.ayetler, required this.mod, this.odev});
   final List<int> ayetler;
   final String mod;
+  /// Hocanın verdiği ödev: okuma kaydedilir, "Dersi bitirdim" ile sonuç ve ses hocaya gider.
+  final Bag? odev;
 
   @override
   State<OkuEkrani> createState() => _OkuEkraniState();
@@ -34,6 +39,10 @@ class _OkuEkraniState extends State<OkuEkrani> {
   final List<(int, int, int)> _gecmis = []; // geri almak için: (dizin, eski durum, eski cur)
 
   bool get _ses => widget.mod == 'ses';
+  Bag? get _odev => widget.odev;
+  /// Ödev okumasının sıkıştırılmış kaydı (yalnız uygulamanın kendi ses tanımasıyla dinlerken).
+  final _kayit = AdpcmKodlayici();
+  static const _enCokOrnek = 16000 * 60 * 25; // 25 dakika
 
   /// Oturumdaki ayetler: seçilen bölüm + okumaya devam edilirse sıradaki ayetler (sonraki sure dahil).
   late final List<int> _ayetler = List.of(widget.ayetler);
@@ -86,6 +95,7 @@ class _OkuEkraniState extends State<OkuEkrani> {
 
   @override
   void dispose() {
+    Kulak.kayitci = null;
     Ses.acik.removeListener(_yenile);
     if (_kulak) {
       Kulak.durdur();
@@ -167,7 +177,12 @@ class _OkuEkraniState extends State<OkuEkrani> {
       );
       if (ok) {
         _kulak = true;
-        if (mounted) showSnack(context, 'Dinliyorum… okumaya başla');
+        if (_odev != null) {
+          Kulak.kayitci = (s) {
+            if (_kayit.ornek < _enCokOrnek) _kayit.ekle(s);
+          };
+        }
+        if (mounted) showSnack(context, _odev != null ? 'Dinliyorum… okuman hocana gönderilmek üzere kaydediliyor' : 'Dinliyorum… okumaya başla');
         return;
       }
       if (!Kulak.kullanilabilir) _kulak = false;
@@ -287,6 +302,65 @@ class _OkuEkraniState extends State<OkuEkrani> {
       ),
     );
     if (yeni != null) setState(() => k.st = yeni);
+  }
+
+  /// Ödev: sonuç ve okuma sesi hocaya gönderilir.
+  Future<void> _dersiBitirdim() async {
+    if (_bitti || !mounted) return;
+    if (!_w.any((k) => k.st != KD.gizli)) {
+      showSnack(context, 'Henüz okumadın. Mikrofona basıp ödevini oku.');
+      return;
+    }
+    _kulak ? await Kulak.durdur() : await Ses.durdur();
+    Kulak.kayitci = null;
+    _e.bitisToleransi();
+    _bitti = true;
+    final sn = DateTime.now().difference(_t0).inSeconds;
+    final n = _okunanAyetSayisi;
+    final ayetler = _ayetler.sublist(0, n);
+    final w = _w.where((k) => k.li < n).toList();
+    final b = _odev!;
+    final o = Kayit.i.oturumKaydet(tur: widget.mod, ayetler: ayetler, w: w, sureSn: sn, kisi: b.karsiAd(b.ogrenci), kisiUid: b.hoca);
+    DriveYedek.otomatikYedekle();
+    final ses = _kayit.bitir();
+    final ornek = _kayit.ornek;
+    final ilerleme = ValueNotifier<double>(0);
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        title: const Text('Hocana gönderiliyor…'),
+        content: ValueListenableBuilder<double>(
+          valueListenable: ilerleme,
+          builder: (_, v, __) => Column(mainAxisSize: MainAxisSize.min, children: [
+            LinearProgressIndicator(value: v == 0 ? null : v),
+            const SizedBox(height: 8),
+            Text(ornek > 0 ? 'Okuma sesin ve sonucun gönderiliyor (${(ses.length / 1e6).toStringAsFixed(1)} MB)' : 'Sonucun gönderiliyor'),
+          ]),
+        ),
+      ),
+    );
+    var tamam = false;
+    try {
+      await OdevSes.gonder(
+        bag: b,
+        etiket: o.etiket,
+        puan: o.puan,
+        sayilar: o.sayilar,
+        sureSn: sn,
+        ses: ornek > 0 ? ses : null,
+        ornek: ornek,
+        ilerleme: (v) => ilerleme.value = v,
+      );
+      tamam = true;
+    } catch (e) {
+      if (mounted) showSnack(context, 'Gönderilemedi: ${errorText(e)}. Sonucun telefonuna kaydedildi.');
+    }
+    if (!mounted) return;
+    Navigator.pop(context); // gönderim penceresi
+    if (tamam) showSnack(context, ornek > 0 ? '✓ Ödevin ve okuma sesin hocana gönderildi' : '✓ Ödevin hocana gönderildi');
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SonucEkrani(oturum: o, w: w, mod: widget.mod)));
   }
 
   void _bitir() {
@@ -468,7 +542,13 @@ class _OkuEkraniState extends State<OkuEkrani> {
                     kucuk(Icons.check_circle_outline, 'Doğru say', () => _isaretle(KD.dogru)),
                     kucuk(Icons.undo, 'Geri al', _geriAl),
                   ]),
-                  TextButton.icon(onPressed: _bitir, icon: const Icon(Icons.flag_outlined), label: const Text('Bitir ve sonucu gör')),
+                  if (_odev != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+                      child: GoldButton(label: 'Dersi bitirdim · hocama gönder', icon: Icons.task_alt, onPressed: _dersiBitirdim),
+                    )
+                  else
+                    TextButton.icon(onPressed: _bitir, icon: const Icon(Icons.flag_outlined), label: const Text('Bitir ve sonucu gör')),
                 ])
               : Column(mainAxisSize: MainAxisSize.min, children: [
                   Text('Okuyan okusun, sen sıradaki kelimeyi işaretle.', style: AppText.body(12.5, color: AppColors.muted)),
@@ -515,8 +595,8 @@ Widget _buyuk(String t, Color c, VoidCallback f) => SizedBox(
     );
 
 /// Dışarıdan çağrılan kısa yollar.
-void ezberAc(BuildContext context, List<int> ayetler, String mod) =>
-    Navigator.push(context, MaterialPageRoute(builder: (_) => OkuEkrani(ayetler: ayetler, mod: mod)));
+void ezberAc(BuildContext context, List<int> ayetler, String mod, {Bag? odev}) =>
+    Navigator.push(context, MaterialPageRoute(builder: (_) => OkuEkrani(ayetler: ayetler, mod: mod, odev: odev)));
 
 /// Tarteel tarzı dinleme dalgası: mikrofon açıkken düğmenin çevresinde sesle büyüyen halkalar.
 class DinlemeDalgasi extends StatefulWidget {

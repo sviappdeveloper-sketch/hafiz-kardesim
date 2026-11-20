@@ -38,6 +38,9 @@ class _DinleEkraniState extends State<DinleEkrani> {
   int _i = 0, _r = 0, _lp = 0;
   int _tekrar = 1, _bolum = 1;
   double _hiz = 1;
+  /// "Bu ayeti tekrar dinle": basıldıkça artar; ayet bitmeden kesmez, ayet bitince o kadar daha çalar.
+  int _ekTekrar = 0;
+  static const _hizlar = [.5, .75, 1.0, 1.25, 1.5, 1.75, 2.0];
   bool _bekle = false, _gizle = false, _calar = false, _besmeleCaliyor = false, _besmeleBitti = false;
   String _bekleMetin = '';
   Timer? _t;
@@ -147,6 +150,11 @@ class _DinleEkraniState extends State<DinleEkrani> {
       return;
     }
     void sonraki() {
+      if (_ekTekrar > 0) {
+        setState(() => _ekTekrar--);
+        _cal();
+        return;
+      }
       _r++;
       if (_r < _tekrar) {
         _cal();
@@ -202,7 +210,21 @@ class _DinleEkraniState extends State<DinleEkrani> {
     }
   }
 
+  void _hizDegistir(double v) {
+    setState(() => _hiz = v);
+    _p.setSpeed(v);
+  }
+
+  void _hizAdim(int yon) {
+    final i = _hizlar.indexWhere((x) => (x - _hiz).abs() < .01);
+    final y = ((i < 0 ? 2 : i) + yon).clamp(0, _hizlar.length - 1);
+    _hizDegistir(_hizlar[y]);
+  }
+
+  String _hizYazi(double v) => '${v.toString().replaceAll(RegExp(r'\.?0+$'), '')}x';
+
   void _git(int i) {
+    _ekTekrar = 0;
     _i = i.clamp(0, widget.ayetler.length - 1);
     _r = 0;
     _besmeleBitti = false;
@@ -238,10 +260,7 @@ class _DinleEkraniState extends State<DinleEkrani> {
                   )),
                   _satir('Her ayeti', _secim<int>(_tekrar, const [1, 2, 3, 5, 7, 10, 20], (v) => '$v kez', (v) => setState(() => _tekrar = v))),
                   _satir('Bütün bölümü', _secim<int>(_bolum, const [1, 2, 3, 5, 0], (v) => v == 0 ? 'Sürekli' : '$v kez', (v) => setState(() => _bolum = v))),
-                  _satir('Okuma hızı', _secim<double>(_hiz, const [.75, 1, 1.25, 1.5], (v) => '${v}x', (v) {
-                    setState(() => _hiz = v);
-                    _p.setSpeed(v);
-                  })),
+                  _satir('Okuma hızı', _secim<double>(_hiz, _hizlar, _hizYazi, _hizDegistir)),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     value: _bekle,
@@ -296,6 +315,54 @@ class _DinleEkraniState extends State<DinleEkrani> {
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   if (_bekleMetin.isNotEmpty)
                     Text(_bekleMetin, style: AppText.body(14, color: AppColors.goldLight, weight: FontWeight.w700)),
+                  // Dinlerken de açık kalan iki ayar: ayeti tekrar dinle ve okuma hızı.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                    child: Row(children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _ekTekrar > 0 ? AppColors.inkDeep : AppColors.goldLight,
+                            backgroundColor: _ekTekrar > 0 ? AppColors.goldLight : null,
+                            side: BorderSide(color: AppColors.gold.withValues(alpha: .6)),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                          onPressed: () {
+                            setState(() => _ekTekrar++);
+                            showSnack(context, 'Ayet bitince ${_ekTekrar == 1 ? 'bir kez daha' : '$_ekTekrar kez daha'} çalacak');
+                          },
+                          onLongPress: () => setState(() => _ekTekrar = 0),
+                          icon: const Icon(Icons.replay_rounded, size: 20),
+                          label: FittedBox(child: Text(_ekTekrar > 0 ? 'Ayeti tekrar dinle (+$_ekTekrar)' : 'Ayeti tekrar dinle')),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppColors.gold.withValues(alpha: .6)),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          IconButton(
+                            tooltip: 'Yavaşlat',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: _hiz <= _hizlar.first ? null : () => _hizAdim(-1),
+                            icon: const Icon(Icons.remove_rounded),
+                          ),
+                          SizedBox(
+                            width: 46,
+                            child: Text(_hizYazi(_hiz), textAlign: TextAlign.center, style: AppText.body(14, weight: FontWeight.w700)),
+                          ),
+                          IconButton(
+                            tooltip: 'Hızlandır',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: _hiz >= _hizlar.last ? null : () => _hizAdim(1),
+                            icon: const Icon(Icons.add_rounded),
+                          ),
+                        ]),
+                      ),
+                    ]),
+                  ),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     IconButton(iconSize: 32, onPressed: () => _git(_i - 1), icon: const Icon(Icons.skip_previous_rounded)),
                     const SizedBox(width: 12),

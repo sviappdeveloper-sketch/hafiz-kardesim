@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../hafiz/hoca_service.dart';
 import '../../hafiz/kuran.dart';
+import '../../hafiz/odev_ses.dart';
 import '../../models/models.dart';
 import '../../services/social_service.dart';
 import '../../theme/app_theme.dart';
@@ -15,6 +16,7 @@ import 'canli.dart';
 import 'ilerleme.dart';
 import 'oku.dart';
 import 'sec.dart';
+import 'teslim.dart';
 
 /// Hoca–öğrenci çalışma alanı: istekler, hocalarım, öğrencilerim, canlı dinletme, ödevler.
 class HocaEkrani extends StatelessWidget {
@@ -144,16 +146,22 @@ class HocaEkrani extends StatelessWidget {
         if (not.isNotEmpty) Text(not, style: AppText.body(13)),
         if (ogrenciyim && ayetler.isNotEmpty)
           Wrap(spacing: 8, children: [
-            TextButton.icon(onPressed: () => ezberAc(context, ayetler, 'ses'), icon: const Icon(Icons.mic), label: const Text('Çalış')),
+            TextButton.icon(onPressed: () => ezberAc(context, ayetler, 'ses', odev: b), icon: const Icon(Icons.mic), label: const Text('Ödevi oku')),
             TextButton.icon(
                 onPressed: () => _canliBaslat(context, b, ayetler),
                 icon: const Icon(Icons.record_voice_over),
                 label: const Text('Hocama dinlet')),
           ]),
+        TeslimKarti(bag: b, hocayim: !ogrenciyim),
         if (!ogrenciyim)
           Align(
             alignment: Alignment.centerRight,
-            child: TextButton(onPressed: () => runGuarded(context, () => HocaService.odevKaldir(b)), child: const Text('Ödevi kaldır')),
+            child: TextButton(
+                onPressed: () => runGuarded(context, () async {
+                      await HocaService.odevKaldir(b);
+                      await OdevSes.sil(b.id).catchError((_) {});
+                    }),
+                child: const Text('Ödevi kaldır')),
           ),
       ]),
     );
@@ -283,7 +291,11 @@ class HocaEkrani extends StatelessWidget {
                 ),
               );
               if (not == null || !c.mounted) return;
-              final ok = await runGuarded(c, () => HocaService.odevVer(b, l, Kuran.etiketListe(l), not), success: 'Ödev gönderildi');
+              final ok = await runGuarded(c, () async {
+                await HocaService.odevVer(b, l, Kuran.etiketListe(l), not);
+                // Önceki ödevin sesi sunucuda bekletilmez.
+                await OdevSes.sil(b.id).catchError((_) {});
+              }, success: 'Ödev gönderildi');
               if (ok && c.mounted) secimiKapat(c);
             },
           ),

@@ -37,7 +37,7 @@ class SupportScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
               children: [
                 GoldButton(
-                  label: lt('Reklam ver / katkı sun'),
+                  label: lt('İşbirliği kur / katkı sun'),
                   icon: Icons.campaign_outlined,
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdRequestScreen(me: me))),
                 ),
@@ -331,7 +331,7 @@ class _Sponsors extends StatelessWidget {
         final list = snap.data!;
         if (list.isEmpty) {
           return OrnateCard(
-            child: Text(lt('Katkı sunanlar burada yer alacak. Siz de "Reklam ver" ile talep oluşturabilirsiniz.'),
+            child: Text(lt('Katkı sunanlar burada yer alacak. Siz de "İşbirliği kur / katkı sun" ile talep oluşturabilirsiniz.'),
                 style: AppText.body(14, color: AppColors.muted)),
           );
         }
@@ -574,7 +574,7 @@ class _AdRequestScreenState extends State<AdRequestScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(lt('Teşekkür ederiz'), style: AppText.display(26)),
-          content: Text(lt('Katkı ve destek talebinizden dolayı teşekkür ederiz. Reklam talebinizi inceleyip en kısa sürede size dönüş sağlayacağız.'),
+          content: Text(lt('Katkı ve destek talebinizden dolayı teşekkür ederiz. İşbirliği talebinizi inceleyip en kısa sürede size dönüş sağlayacağız.'),
               style: AppText.body(14)),
           actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(lt('Tamam')))],
         ),
@@ -586,7 +586,7 @@ class _AdRequestScreenState extends State<AdRequestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(lt('Reklam Ver'))),
+      appBar: AppBar(title: Text(lt('İşbirliği Kur · Katkı Sun'))),
       body: PatternBackground(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
@@ -605,7 +605,7 @@ class _AdRequestScreenState extends State<AdRequestScreen> {
               decoration: InputDecoration(labelText: lt('Firma / kişi adı')),
             ),
             const SizedBox(height: 14),
-            Text(lt('Reklam görseli'), style: AppText.label()),
+            Text(lt('Tanıtım görseli'), style: AppText.label()),
             const SizedBox(height: 8),
             InkWell(
               onTap: _picking ? null : _pick,
@@ -654,7 +654,7 @@ class _AdRequestScreenState extends State<AdRequestScreen> {
               maxLines: 4,
               maxLength: 1000,
               decoration: InputDecoration(
-                labelText: lt('Reklam açıklaması'),
+                labelText: lt('Açıklama'),
                 hintText: lt('"Detay" düğmesine dokunanlar bu açıklamayı büyük görselle birlikte görür.'),
                 alignLabelWithHint: true,
               ),
@@ -670,7 +670,7 @@ class _AdRequestScreenState extends State<AdRequestScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            Text(lt('Reklam süresi'), style: AppText.label()),
+            Text(lt('Yayın süresi'), style: AppText.label()),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final (d, label) in [(3, lt('3 gün')), (7, lt('1 hafta')), (15, lt('15 gün')), (30, lt('1 ay')), (0, lt('Özel süre'))])
@@ -687,7 +687,7 @@ class _AdRequestScreenState extends State<AdRequestScreen> {
             Text(
               _days == 0
                   ? lt('Özel süreyi sizinle görüşerek birlikte belirleyeceğiz.')
-                  : lt('Reklam, onaylandığı günden başlayarak seçilen süre sonunda kendiliğinden kaldırılır.'),
+                  : lt('Katkı sunan tanıtımı, onaylandığı günden başlayarak seçilen süre sonunda kendiliğinden kaldırılır.'),
               style: AppText.body(12, color: AppColors.muted),
             ),
             const SizedBox(height: 16),

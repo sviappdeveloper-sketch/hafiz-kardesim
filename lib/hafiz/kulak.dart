@@ -46,6 +46,8 @@ class Kulak {
   /// Modelin gerisinde kalan ses (saniye): telefon yetişemiyorsa ekranda gösterilir.
   static final gecikme = ValueNotifier<double>(0);
   static int _giden = 0;
+  /// Ham sesi (16 kHz, 16 bit) ayrıca alan dinleyici: ödev okuması hocaya gönderilmek üzere kaydedilir.
+  static void Function(Int16List ses)? kayitci;
   static int _sessiz = 0;
   static bool _sessizBildirildi = false;
   /// Gönderilen ve işçinin yanıtladığı son "sifirla" isteği: yanıt gelene kadar sonuçlar atılır.
@@ -162,12 +164,17 @@ class Kulak {
     final n = b.length ~/ 2;
     if (n == 0) return;
     final ses = Float32List(n);
+    final k = kayitci;
+    final ham = k == null ? null : Int16List(n);
     var kare = 0.0;
     for (var i = 0; i < n; i++) {
-      final v = bd.getInt16(i * 2, Endian.little) / 32768.0;
+      final x = bd.getInt16(i * 2, Endian.little);
+      if (ham != null) ham[i] = x;
+      final v = x / 32768.0;
       ses[i] = v;
       kare += v * v;
     }
+    if (ham != null) k!(ham);
     final rms = math.sqrt(kare / n);
     // Tamamen sıfır ses: mikrofon başka uygulamaya (telefon / WhatsApp araması) ayrılmış,
     // Android bu uygulamaya sessizlik veriyor. Bir kez haber verilir.

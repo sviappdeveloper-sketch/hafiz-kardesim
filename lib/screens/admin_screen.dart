@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
+import '../services/admin_service.dart';
 import '../services/auth_service.dart';
 import '../services/support_service.dart';
 import '../theme/app_theme.dart';
@@ -20,15 +21,16 @@ class AdminScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 6,
+      length: 7,
       child: Scaffold(
         appBar: AppBar(
           title: Text(lt('Yönetim')),
           bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [
+            const Tab(child: _SuistimalSekmeBasligi()),
             Tab(text: lt('Üyeler')),
             Tab(text: lt('Gruplar')),
             Tab(text: lt('Mesajlar')),
-            Tab(text: lt('Reklam talepleri')),
+            Tab(text: lt('İşbirliği talepleri')),
             Tab(text: lt('Katkı sunanlar')),
             Tab(text: lt('Ayarlar')),
           ]),
@@ -38,6 +40,7 @@ class AdminScreen extends StatelessWidget {
             const _VerifyBanner(),
             Expanded(
               child: TabBarView(children: [
+                const _Suistimaller(),
                 AdminMembers(me: me),
                 AdminGroups(me: me),
                 const _Threads(),
@@ -170,7 +173,7 @@ class _AdRequests extends StatelessWidget {
         if (!snap.hasData) return const LoadingView();
         final list = snap.data!;
         if (list.isEmpty) {
-          return SingleChildScrollView(child: EmptyState(title: lt('Talep yok'), message: lt('"Reklam ver" formundan gelen talepler burada görünür.')));
+          return SingleChildScrollView(child: EmptyState(title: lt('Talep yok'), message: lt('"İşbirliği kur / katkı sun" formundan gelen talepler burada görünür.')));
         }
         // İnce liste: tarih, isim, durum. Dokununca ayrıntı açılır.
         return ListView.separated(
@@ -239,7 +242,7 @@ class _AdRequestDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(lt('Reklam talebi'))),
+      appBar: AppBar(title: Text(lt('İşbirliği talebi'))),
       body: PatternBackground(
         child: StreamBuilder<List<AdRequest>>(
           stream: SupportService.allAdRequests(),
@@ -529,6 +532,110 @@ class _SettingsState extends State<_Settings> {
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+/// Hafız Kardeşim'deki "Suistimal bildir" kayıtları (şikâyet olarak gelir, metni bu etiketle başlar).
+bool suistimalMi(SupportThread t) =>
+    t.category == 'sikayet' && t.messages.isNotEmpty && t.messages.first.text.startsWith('[Hafız Kardeşim · Suistimal');
+
+/// Bildirimin metninden bildirilen üyenin uid'i ve adı.
+(String, String)? _bildirilen(SupportThread t) {
+  final m = RegExp(r'Bildirilen: (.*) \(uid: ([^)]+)\)').firstMatch(t.messages.first.text);
+  return m == null ? null : (m.group(2)!, m.group(1)!);
+}
+
+class _SuistimalSekmeBasligi extends StatelessWidget {
+  const _SuistimalSekmeBasligi();
+  @override
+  Widget build(BuildContext context) => StreamBuilder<List<SupportThread>>(
+        stream: SupportService.allThreads(),
+        builder: (context, snap) {
+          final n = (snap.data ?? const <SupportThread>[]).where((t) => suistimalMi(t) && t.unreadForAdmin).length;
+          return Row(mainAxisSize: MainAxisSize.min, children: [
+            const Text('🚩 Suistimal'),
+            if (n > 0) ...[
+              const SizedBox(width: 6),
+              StatusPill('$n', color: AppColors.danger),
+            ],
+          ]);
+        },
+      );
+}
+
+/// Yönetici: suistimal bildirimleri. Bildirimi açıp cevap yazabilir, bildirilen üyeyi engelleyebilir.
+class _Suistimaller extends StatelessWidget {
+  const _Suistimaller();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<SupportThread>>(
+      stream: SupportService.allThreads(),
+      builder: (context, snap) {
+        if (snap.hasError) return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(errorText(snap.error!))));
+        if (!snap.hasData) return const LoadingView();
+        final list = snap.data!.where(suistimalMi).toList();
+        if (list.isEmpty) {
+          return SingleChildScrollView(
+              child: EmptyState(title: 'Bildirim yok', message: 'Hoca–öğrenci bölümünden yapılan suistimal bildirimleri burada görünür.'));
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: list.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, i) {
+            final t = list[i];
+            final kim = _bildirilen(t);
+            final govde = t.messages.first.text.split('\n').skip(1).join('\n').trim();
+            return OrnateCard(
+              highlight: t.unreadForAdmin,
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  StatusPill(t.unreadForAdmin ? 'Yeni' : 'Görüldü', color: t.unreadForAdmin ? AppColors.danger : AppColors.muted),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: Text('Bildiren: ${t.name}', overflow: TextOverflow.ellipsis, style: AppText.body(14, weight: FontWeight.w600))),
+                ]),
+                const SizedBox(height: 6),
+                Text(govde, style: AppText.body(13.5)),
+                Text(formatDateTime(t.updatedAt), style: AppText.body(11, color: AppColors.muted)),
+                const SizedBox(height: 6),
+                Wrap(spacing: 8, runSpacing: 4, children: [
+                  TextButton.icon(
+                    onPressed: () => Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => SupportThreadScreen(threadId: t.id, asAdmin: true))),
+                    icon: const Icon(Icons.forum_outlined),
+                    label: const Text('Aç / cevap yaz'),
+                  ),
+                  if (kim != null)
+                    TextButton.icon(
+                      onPressed: () async {
+                        final ok = await showDialog<bool>(
+                          context: context,
+                          builder: (c) => AlertDialog(
+                            title: const Text('Üye engellensin mi?'),
+                            content: Text('${kim.$2} engellenir: hoca–öğrenci isteği gönderemez, canlı ders başlatamaz.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Vazgeç')),
+                              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Engelle')),
+                            ],
+                          ),
+                        );
+                        if (ok == true && context.mounted) {
+                          await runGuarded(context, () => AdminService.setBlocked(kim.$1, true), success: '${kim.$2} engellendi');
+                        }
+                      },
+                      icon: Icon(Icons.block, color: AppColors.danger),
+                      label: Text('${kim.$2} kişisini engelle', style: TextStyle(color: AppColors.danger)),
+                    ),
+                ]),
+              ]),
+            );
+          },
         );
       },
     );

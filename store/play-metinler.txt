@@ -21,7 +21,9 @@ Hafızlıktaki gibi: telefonu yanındaki arkadaşın tutar, sen okursun; o her k
 HOCANA DİNLET
 • Hocanı ya da öğrencini arkadaş listenden veya 6 haneli kodla ekle; karşı tarafa "Hoca olarak kabul ediyor musun?" diye sorulur.
 • Canlı derste öğrenci kendi telefonunda gizli ayetlerle okur, hoca kendi telefonunda metni açık görür ve işaretler. İşaretler iki telefona anında gider.
-• Hoca ödev verir, not yazar; her ders iki tarafın ders geçmişine kaydedilir.
+• Hoca canlı derste "Dur", "Yeniden oku" ve "Baştan al" diyebilir; uyarı öğrencinin ekranında büyük çıkar.
+• Hoca ödev verir, not yazar. Öğrenci ödevi okuyup "Dersi bitirdim"e basınca sonucu ve okuma sesi hocasına gider; hoca dinler.
+• Her ders iki tarafın ders geçmişine kaydedilir.
 
 TEKRAR TAKVİMİ
 İyi okuduğun ayetler 1, 3, 7, 14, 30 ve 60 gün arayla yeniden karşına çıkar, zorlandıkların ertesi gün. Ana sayfadaki "Bugünün tekrarı" hepsini toplar.
@@ -38,6 +40,6 @@ Günlük hedef, gün serisi, 16 haftalık çalışma takvimi, cüz cüz ezber ha
 AYRICA
 Namaz vakitleri ve ezan bildirimi, kıble pusulası, açık ve koyu tema.
 
-Ders geçmişin yalnızca telefonunda ve kendi Google Drive / iCloud yedeğinde durur. Uygulama ücretsizdir, reklam yoktur. Hatim Kardeşim üyeliğinle de giriş yapabilirsin.
+Ders geçmişin yalnızca telefonunda ve kendi Google Drive / iCloud yedeğinde durur. Uygulama ücretsizdir, reklam yoktur. Dileyenler Destek ve İletişim'deki "İşbirliği kur / katkı sun" bölümünden destek olabilir. Hatim Kardeşim üyeliğinle de giriş yapabilirsin.
 
 Tane tane ve net okumak, sesli takibin sonucunu iyileştirir.

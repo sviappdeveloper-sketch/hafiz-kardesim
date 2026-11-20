@@ -86,7 +86,7 @@ class _AdCropScreenState extends State<AdCropScreen> {
                     ..translate(-(_childW - _frameW) / 2, -(_childH - _frameH) / 2);
                 }
                 return ListView(padding: const EdgeInsets.all(16), children: [
-                  Text(lt('İki parmakla büyütüp küçültün, sürükleyerek kaydırın. Çerçevenin içinde kalan kısım reklamda görünür.'),
+                  Text(lt('İki parmakla büyütüp küçültün, sürükleyerek kaydırın. Çerçevenin içinde kalan kısım tanıtımda görünür.'),
                       style: AppText.body(14, color: AppColors.muted)),
                   const SizedBox(height: 14),
                   Container(

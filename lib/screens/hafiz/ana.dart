@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../hafiz/hoca_service.dart';
 import '../../hafiz/kayit.dart';
 import '../../hafiz/kuran.dart';
+import '../../hafiz/odev_ses.dart';
 import '../../hafiz/ses.dart';
 import '../../hafiz/yedek.dart';
 import '../../l10n/l10n.dart';
@@ -300,6 +301,18 @@ class _AnaSekme extends StatelessWidget {
                 _genis(Icons.assignment_outlined, 'Ödev · ${b.karsiAd(me.id)}', '${b.odev!['etiket'] ?? ''}', () => sekme(1)),
                 const SizedBox(height: 10),
               ],
+              // Hoca: öğrencisi ödevini bitirdi, okuma sesi dinlenmeyi bekliyor.
+              if (!me.isGuest)
+                StreamBuilder<List<Teslim>>(
+                  stream: OdevSes.yeniTeslimler(me.id),
+                  builder: (context, s) => Column(children: [
+                    for (final t in s.data ?? const <Teslim>[]) ...[
+                      _genis(Icons.task_alt, '📥 ${baglar.where((b) => b.id == t.id).firstOrNull?.karsiAd(me.id) ?? 'Öğrencin'} ödevini bitirdi',
+                          '${t.etiket} · %${t.puan} · okuma sesini dinle', () => sekme(1), vurgu: true),
+                      const SizedBox(height: 10),
+                    ],
+                  ]),
+                ),
               if (son != null) ...[
                 _genis(Icons.play_arrow_rounded, 'Devam et', '${son.etiket} · ${son.turAdi}',
                     () => ac(OkuEkrani(ayetler: son.ayetler, mod: son.tur == 'kardes' ? 'kardes' : 'ses'))),
@@ -442,6 +455,15 @@ class _DahaSekme extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!AuthService.isAdmin) return _icerik(context, 0);
+    // Yönetici: yeni suistimal bildirimleri "Yönetim" satırında kırmızı sayı olarak görünür.
+    return StreamBuilder<List<SupportThread>>(
+      stream: SupportService.allThreads(),
+      builder: (context, s) => _icerik(context, (s.data ?? const <SupportThread>[]).where((t) => suistimalMi(t) && t.unreadForAdmin).length),
+    );
+  }
+
+  Widget _icerik(BuildContext context, int yonetim) {
     // Konulara göre gruplanmış sade liste. Kaynakça, Destek ve İletişim sayfasının en altında.
     final gruplar = <(String, List<(IconData, String, VoidCallback, int)>)>[
       ('HESABIM', [
@@ -459,7 +481,7 @@ class _DahaSekme extends StatelessWidget {
       ('YARDIM', [
         (Icons.help_outline, 'Nasıl kullanılır', () => ac(const YardimEkrani()), 0),
         (Icons.volunteer_activism_outlined, 'Destek ve İletişim', () => ac(SupportScreen(me: me)), destek),
-        if (AuthService.isAdmin) (Icons.admin_panel_settings_outlined, 'Yönetim', () => ac(AdminScreen(me: me)), 0),
+        if (AuthService.isAdmin) (Icons.admin_panel_settings_outlined, 'Yönetim', () => ac(AdminScreen(me: me)), yonetim),
       ]),
     ];
     return Scaffold(

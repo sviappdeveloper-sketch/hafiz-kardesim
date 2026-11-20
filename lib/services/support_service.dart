@@ -73,10 +73,10 @@ class SupportService {
     required String phone,
     required int? durationDays,
   }) async {
-    if (durationDays == null) throw HatimException(lt('Lütfen reklam süresini seçin.'));
+    if (durationDays == null) throw HatimException(lt('Lütfen yayın süresini seçin.'));
     if (company.trim().length < 2) throw HatimException(lt('Firma / kişi adını yazın.'));
-    if (image == null) throw HatimException(lt('Lütfen reklam görselini (resim ya da GIF) seçin.'));
-    if (detail.trim().length < 10) throw HatimException(lt('Reklam açıklamasını biraz daha ayrıntılı yazın (en az 10 harf).'));
+    if (image == null) throw HatimException(lt('Lütfen tanıtım görselini (resim ya da GIF) seçin.'));
+    if (detail.trim().length < 10) throw HatimException(lt('Açıklamayı biraz daha ayrıntılı yazın (en az 10 harf).'));
     final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
     if (digits.length < 10) throw HatimException(lt('Size ulaşabileceğimiz geçerli bir telefon numarası yazın.'));
     await adRequests.add({
