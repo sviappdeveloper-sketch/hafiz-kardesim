@@ -27,7 +27,7 @@ Kur'an ezberini dinletme uygulaması. Hatim Kardeşim'in yapısıyla (Flutter + 
 
 ## Firebase (Hatim Kardeşim projesi) için yapılacaklar
 
-1. **Firestore kuralları:** `hafizBag` ve `hafizCanli` koleksiyonlarının kuralları Hatim Kardeşim deposundaki `firestore.rules` dosyasına eklendi; Firebase konsolu › Firestore › Kurallar'a yapıştırıp Yayınla.
+1. **Firestore kuralları:** `firebase/firestore.rules` (Hatim Kardeşim ile ortak). Bu dosya değişince "Firestore kurallarını yayınla" iş akışı kuralları Firebase'e yükler; bunun için depoya bir kez `FIREBASE_SA` sırrı (Firebase › Proje ayarları › Hizmet hesapları › Yeni özel anahtar oluştur ile inen JSON) eklenir.
 2. **Android uygulaması ekle:** Firebase konsolu › Proje ayarları › Uygulama ekle › Android › paket adı `com.sviapp.hafiz_kardesim`; SHA-1 değerleri `apk` dalındaki `IMZA.txt` dosyasında. Google ile giriş ve Drive yedeği bunun için gerekli.
 3. **Google Drive API:** Google Cloud konsolu (hatim-kardesim projesi) › API'ler › "Google Drive API" › Etkinleştir. OAuth izin ekranına `drive.appdata` kapsamı eklenir.
 

@@ -1,0 +1,42 @@
+name: Firestore kurallarını yayınla
+# firebase/firestore.rules değişince (Hatim Kardeşim + Hafız Kardeşim ortak Firebase projesi)
+# kurallar Firebase'e kendiliğinden yüklenir. Bir kerelik kurulum: Firebase konsolu › Proje ayarları ›
+# Hizmet hesapları › "Yeni özel anahtar oluştur" ile inen JSON dosyasının tamamı, bu depoda
+# Settings › Secrets and variables › Actions › New repository secret › Ad: FIREBASE_SA olarak eklenir.
+on:
+  push:
+    branches: [main]
+    paths: ['firebase/**', '.github/workflows/kurallar.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  yayinla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Anahtar
+        env:
+          SA: ${{ secrets.FIREBASE_SA }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::error title=FIREBASE_SA eksik::Depo ayarlarına FIREBASE_SA sırrı (hizmet hesabı JSON) eklenmeli."
+            exit 1
+          fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+      - name: Kuralları yayınla
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx -y firebase-tools@latest deploy --only firestore:rules --project hatim-kardesim --non-interactive
+      - name: Anahtarı sil
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"
