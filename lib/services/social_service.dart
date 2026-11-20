@@ -155,16 +155,30 @@ class SocialService {
         lt('Hatim davetiyesi'),
       );
 
-  /// Paylaşım penceresi. iPhone/iPad'de pencerenin bağlanacağı bir konum verilmezse
-  /// paylaşım hiç açılmayabiliyor; bu yüzden ekranın ortası verilir.
-  static Future<void> _share(String text, String subject) async {
-    final view = WidgetsBinding.instance.platformDispatcher.views.first;
-    final size = view.physicalSize / view.devicePixelRatio;
-    final origin = Rect.fromCenter(center: Offset(size.width / 2, size.height / 2), width: 1, height: 1);
+  /// Paylaşım penceresi. iPhone/iPad'de pencerenin bağlanacağı bir konum (sharePositionOrigin)
+  /// verilmezse "argument must be set" hatası çıkar. [context] verilirse basılan düğmenin yeri,
+  /// verilmezse ekranın ortası kullanılır.
+  static Future<void> paylas(String text, {String subject = '', BuildContext? context}) =>
+      _share(text, subject, context: context);
+
+  static Future<void> _share(String text, String subject, {BuildContext? context}) async {
+    Rect? origin;
     try {
-      await Share.share(text, subject: subject, sharePositionOrigin: origin);
+      final ro = context?.findRenderObject();
+      if (ro is RenderBox && ro.hasSize && ro.attached) {
+        final p = ro.localToGlobal(Offset.zero);
+        if (ro.size.width > 0 && ro.size.height > 0) origin = p & ro.size;
+      }
+    } catch (_) {}
+    if (origin == null) {
+      final view = WidgetsBinding.instance.platformDispatcher.views.first;
+      final size = view.physicalSize / view.devicePixelRatio;
+      origin = Rect.fromCenter(center: Offset(size.width / 2, size.height / 2), width: 2, height: 2);
+    }
+    try {
+      await Share.share(text, subject: subject.isEmpty ? null : subject, sharePositionOrigin: origin);
     } catch (_) {
-      // Paylaşım penceresi açılamazsa bağlantıyı panoya kopyala.
+      // Paylaşım penceresi açılamazsa metni panoya kopyala.
       await Clipboard.setData(ClipboardData(text: text));
     }
   }

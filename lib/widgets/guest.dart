@@ -4,6 +4,7 @@ import '../l10n/l10n.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'ornaments.dart';
+import 'sekme_geri.dart';
 
 /// Çıkış yapmadan önce onay sorar. Misafir için hesabın bir daha açılamayacağını da söyler.
 Future<void> confirmLogout(BuildContext context) async {
@@ -41,7 +42,7 @@ class GuestOnlyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title), automaticallyImplyLeading: false),
+      appBar: AppBar(title: Text(title), automaticallyImplyLeading: false, leading: SekmeGeri.dugme(context)),
       body: PatternBackground(child: Center(child: Padding(padding: const EdgeInsets.all(24), child: GuestNotice()))),
     );
   }

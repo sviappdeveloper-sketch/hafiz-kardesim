@@ -2,9 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:flutter/services.dart';
+
 import '../../hafiz/arapca.dart';
+import '../../hafiz/fonem.dart';
 import '../../hafiz/hoca_service.dart';
 import '../../hafiz/kayit.dart';
+import '../../hafiz/kulak.dart';
 import '../../hafiz/kuran.dart';
 import '../../hafiz/ses.dart';
 import '../../hafiz/yedek.dart';
@@ -108,6 +112,14 @@ class _CanliEkraniState extends State<CanliEkrani> {
   final Map<int, String> _bekleyenH = {};
   Timer? _yazT;
   int _sonCur = 0;
+  /// Öğrencinin mikrofonu uygulamanın kendi Kur'an ses tanımasıyla (Kulak, internetsiz) mı dinliyor.
+  bool _kulak = false;
+  /// Hocanın son işlenen komutu ve öğrencide gösterilen uyarı.
+  int _komutNo = -1;
+  String _uyari = '';
+  Timer? _uyariT;
+  /// Hoca "Dur" dedi: öğrencinin mikrofonu duraklatıldı; "Devam"da yeniden açılır.
+  bool _durdu = false, _mikAcikti = false;
 
   bool get _hocayim => _c != null && _c!.hoca == widget.me.id;
 
@@ -115,6 +127,8 @@ class _CanliEkraniState extends State<CanliEkrani> {
   void initState() {
     super.initState();
     Ses.acik.addListener(_yenile);
+    // Ses modeli ekran açılırken hazırlanır: mikrofona basınca bekleme olmasın.
+    Kulak.hazirla();
     _sub = HocaService.canli(widget.id).listen(_geldi, onError: (e) {
       if (mounted) showSnack(context, errorText(e));
     });
@@ -123,7 +137,8 @@ class _CanliEkraniState extends State<CanliEkrani> {
   @override
   void dispose() {
     Ses.acik.removeListener(_yenile);
-    Ses.durdur(bosalt: false);
+    _mikKapat(bosalt: false);
+    _uyariT?.cancel();
     _sub?.cancel();
     _canliT?.cancel();
     _yazT?.cancel();
@@ -157,7 +172,21 @@ class _CanliEkraniState extends State<CanliEkrani> {
       _w![i].st = m[i] ?? KD.gizli;
       if (h[i] != null) _w![i].h = h[i]!;
     }
-    if (_bekleyenM.isEmpty) _e!.cur = c.cur.clamp(0, _w!.length);
+    // Sıra (cur) yalnızca karşı taraf yazdıysa uygulanır. Eskiden kendi yazdığımız eski "cur"
+    // geri gelince öğrencinin yeri geriye kayıyor, ses tanıma takılıyordu.
+    final yeniCur = c.cur.clamp(0, _w!.length);
+    if (_bekleyenM.isEmpty && c.yazan != widget.me.id && yeniCur != _e!.cur) {
+      _e!.cur = yeniCur;
+      _e!.sifirlaTampon();
+      if (_kulak) Kulak.yeniBolum();
+    } else if (c.yazan.isEmpty && _bekleyenM.isEmpty) {
+      _e!.cur = yeniCur;
+    }
+    if (c.komutNo != _komutNo) {
+      final ilk = _komutNo < 0;
+      _komutNo = c.komutNo;
+      if (!ilk || c.komut == 'dur') _komutGeldi(c.komut, ilk: ilk);
+    }
     if (c.durum == 'bitti') _kaydet();
     if (c.durum == 'iptal') {
       showSnack(context, 'Davet kabul edilmedi');
@@ -189,7 +218,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
       _bekleyenM.clear();
       _bekleyenH.clear();
       try {
-        await HocaService.isaretle(widget.id, m, h, _e!.cur);
+        await HocaService.isaretle(widget.id, m, h, _e!.cur, yazan: widget.me.id);
       } catch (e) {
         if (mounted) showSnack(context, errorText(e));
       }
@@ -205,6 +234,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
     _w![i].st = st;
     e.cur++;
     e.sifirlaTampon();
+    if (_kulak && Ses.acik.value) Kulak.yeniBolum();
     _yaz([i]);
   }
 
@@ -217,6 +247,8 @@ class _CanliEkraniState extends State<CanliEkrani> {
       d.add(e.cur);
       e.cur++;
     }
+    e.sifirlaTampon();
+    if (_kulak && Ses.acik.value) Kulak.yeniBolum();
     _yaz(d);
   }
 
@@ -225,6 +257,8 @@ class _CanliEkraniState extends State<CanliEkrani> {
     if (e.cur <= 0) return;
     e.cur--;
     _w![e.cur].st = KD.gizli;
+    e.sifirlaTampon();
+    if (_kulak && Ses.acik.value) Kulak.yeniBolum();
     _yaz([e.cur]);
   }
 
@@ -257,20 +291,172 @@ class _CanliEkraniState extends State<CanliEkrani> {
     _yaz([i]);
   }
 
-  // ---------- öğrenci: sesli tanıma ----------
-  Future<void> _mikrofon() async {
-    if (Ses.acik.value) {
-      await Ses.durdur();
+  // ---------- hoca komutları: dur / yeniden oku / baştan al / devam ----------
+  Future<void> _komut(String t) async {
+    final e = _e!;
+    final m = <int, int>{};
+    int? cur;
+    if (t == 'bastan') {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Baştan alınsın mı?'),
+          content: const Text('Öğrenci bölümü baştan okur. Şimdiye kadarki işaretler silinir.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Vazgeç')),
+            TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Baştan al')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      for (var i = 0; i < _w!.length; i++) {
+        if (_w![i].st != KD.gizli) m[i] = KD.gizli;
+        _w![i].st = KD.gizli;
+      }
+      cur = 0;
+    } else if (t == 'tekrar') {
+      // Okunmakta olan ayet; ayetin başındaysa az önce biten ayet yeniden okunur.
+      var i = e.cur.clamp(0, _w!.length);
+      if (i >= _w!.length || (i > 0 && _w![i].li != _w![i - 1].li)) i--;
+      if (i < 0) return;
+      final li = _w![i].li;
+      var bas = i;
+      while (bas > 0 && _w![bas - 1].li == li) {
+        bas--;
+      }
+      for (var z = bas; z < _w!.length && (_w![z].li == li || z < e.cur); z++) {
+        if (_w![z].st != KD.gizli) m[z] = KD.gizli;
+        _w![z].st = KD.gizli;
+      }
+      cur = bas;
+    }
+    if (cur != null) {
+      e.cur = cur;
+      e.sifirlaTampon();
+    }
+    _bekleyenM.clear();
+    _bekleyenH.clear();
+    _yazT?.cancel();
+    setState(() {});
+    try {
+      await HocaService.komutGonder(widget.id, t, widget.me.id, m: m, cur: cur);
+    } catch (err) {
+      if (mounted) showSnack(context, errorText(err));
+    }
+    if (t == 'dur' || t == 'devam') {
+      _durdu = t == 'dur';
+      if (mounted) setState(() {});
+    }
+    if (cur != null) WidgetsBinding.instance.addPostFrameCallback((_) => _kaydir());
+  }
+
+  /// Öğrencinin telefonunda: hocanın komutu büyük bir uyarıyla gösterilir, telefon titrer.
+  void _komutGeldi(String t, {bool ilk = false}) {
+    if (_hocayim) {
+      _durdu = t == 'dur';
       return;
     }
+    final metin = switch (t) {
+      'dur' => '✋ Hocan: Dur',
+      'tekrar' => '↺ Hocan: Bu ayeti yeniden oku',
+      'bastan' => '⏮ Hocan: Baştan al',
+      'devam' => '▶ Hocan: Devam et',
+      _ => '',
+    };
+    if (metin.isEmpty) return;
+    if (!ilk) HapticFeedback.heavyImpact();
+    _uyariT?.cancel();
+    _uyari = metin;
+    if (t == 'dur') {
+      _durdu = true;
+      // Dinleme duraklatılır: hoca konuşurken onun sesi okuma sanılmasın.
+      if (Ses.acik.value) {
+        _mikAcikti = true;
+        _mikKapat();
+      }
+    } else {
+      _durdu = false;
+      _uyariT = Timer(const Duration(milliseconds: 2800), () {
+        if (mounted) setState(() => _uyari = '');
+      });
+      if (_kulak && Ses.acik.value) Kulak.yeniBolum();
+      _e?.sifirlaTampon();
+      if (_mikAcikti && !Ses.acik.value) {
+        _mikAcikti = false;
+        _mikrofon();
+      }
+    }
+    setState(() {});
+  }
+
+  // ---------- öğrenci: sesli tanıma ----------
+  Future<void> _mikKapat({bool bosalt = true}) async {
+    if (_kulak) {
+      await Kulak.durdur();
+    } else {
+      await Ses.durdur(bosalt: bosalt);
+    }
+  }
+
+  void _duyulanYaz(String m) {
+    _duyulanN.value = m;
+    _canliT ??= Timer(const Duration(milliseconds: 1500), () {
+      _canliT = null;
+      if (_e == null) return;
+      HocaService.isaretle(widget.id, const {}, const {}, _e!.cur, canli: _duyulan, yazan: widget.me.id).catchError((_) {});
+    });
+  }
+
+  void _hataGoster(String h) {
+    if (mounted) showSnack(context, Ses.hataMetni(h));
+  }
+
+  Future<void> _mikrofon() async {
+    if (Ses.acik.value) {
+      _mikAcikti = false;
+      await _mikKapat();
+      return;
+    }
+    if (_durdu) {
+      showSnack(context, 'Hocan "Dur" dedi. Hocan devam deyince mikrofon açılır.');
+      _mikAcikti = true;
+      return;
+    }
+    // 1) Uygulamanın kendi Kur'an ses tanıması (Kulak): internetsiz, harf adlarını (الم) ve seri
+    // (hadr) okumayı telefonun genel ses tanımasından çok daha iyi duyar.
+    if (Kulak.kullanilabilir) {
+      final ok = await Kulak.baslat(
+        sonuc: (duyulan, kesin) {
+          if (!mounted || _e == null || _durdu) return;
+          final e = _e!;
+          final eski = [for (final k in _w!) k.st];
+          e.fonem(duyulan, kesin: kesin);
+          final d = <int>[];
+          for (var i = 0; i < _w!.length; i++) {
+            if (_w![i].st != eski[i]) d.add(i);
+          }
+          if (d.isNotEmpty || e.cur != _sonCur) _yaz(d);
+          final x = Fonem.sade(duyulan);
+          _duyulanYaz(x.length > 40 ? x.substring(x.length - 40) : x);
+        },
+        hata: _hataGoster,
+      );
+      if (ok) {
+        _kulak = true;
+        return;
+      }
+      if (Ses.acik.value) return;
+    }
+    // 2) Model açılamazsa telefonun ses tanıması.
+    _kulak = false;
     await Ses.baslat(
       kelime: (k) {
-        if (!mounted || _e == null) return;
+        if (!mounted || _e == null || _durdu) return;
         final d = _e!.besle(k);
         if (d.isNotEmpty) _yaz(d);
       },
       dene: (k) {
-        if (!mounted || _e == null) return false;
+        if (!mounted || _e == null || _durdu) return false;
         final d = _e!.dene(k);
         if (d == null) return false;
         _yaz(d);
@@ -278,15 +464,9 @@ class _CanliEkraniState extends State<CanliEkrani> {
       },
       canli: (m) {
         if (!mounted) return;
-        _duyulanN.value = m.split(' ').reversed.take(8).toList().reversed.join(' ');
-        _canliT ??= Timer(const Duration(milliseconds: 1500), () {
-          _canliT = null;
-          HocaService.isaretle(widget.id, const {}, const {}, _e!.cur, canli: _duyulan).catchError((_) {});
-        });
+        _duyulanYaz(m.split(' ').reversed.take(8).toList().reversed.join(' '));
       },
-      hata: (h) {
-        if (mounted) showSnack(context, Ses.hataMetni(h));
-      },
+      hata: _hataGoster,
     );
   }
 
@@ -303,7 +483,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
       ),
     );
     if (ok != true) return;
-    await Ses.durdur();
+    await _mikKapat();
     if (_hocayim && _not.text.trim() != _c!.not) await HocaService.notYaz(widget.id, _not.text.trim());
     if (!mounted) return;
     await runGuarded(context, () => HocaService.bitir(widget.id));
@@ -455,7 +635,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
             ),
             _hocayim ? _hocaAlt(c) : _ogrenciAlt(),
           ]),
-        ),
+        ).sarUyari(_uyari, _durdu && !_hocayim),
       ),
     );
   }
@@ -477,6 +657,20 @@ class _CanliEkraniState extends State<CanliEkrani> {
           const SizedBox(width: 8),
           Expanded(child: _buyuk('✗ Hata', AppColors.danger, () => _isaretle(KD.hata))),
         ]),
+        // Hocanın komutları: öğrencinin ekranında büyük uyarı olarak çıkar, telefonu titrer.
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(children: [
+            Expanded(
+                child: _durdu
+                    ? _komutDugme('▶', 'Devam', AppColors.done, () => _komut('devam'))
+                    : _komutDugme('✋', 'Dur', AppColors.danger, () => _komut('dur'))),
+            const SizedBox(width: 6),
+            Expanded(child: _komutDugme('↺', 'Yeniden oku', AppColors.gold, () => _komut('tekrar'))),
+            const SizedBox(width: 6),
+            Expanded(child: _komutDugme('⏮', 'Baştan al', AppColors.gold, () => _komut('bastan'))),
+          ]),
+        ),
         Row(children: [
           Expanded(child: TextButton.icon(onPressed: () => _isaretle(KD.ipucu), icon: const Icon(Icons.lightbulb_outline), label: const Text('Hatırlattım'))),
           Expanded(child: TextButton.icon(onPressed: _ayetDogru, icon: const Icon(Icons.done_all), label: const Text('Ayet doğru'))),
@@ -516,6 +710,53 @@ class _CanliEkraniState extends State<CanliEkrani> {
           ),
         ]),
       ]));
+}
+
+Widget _komutDugme(String ikon, String t, Color c, VoidCallback f) => SizedBox(
+      height: 40,
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: c,
+          side: BorderSide(color: c.withValues(alpha: .7)),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onPressed: f,
+        child: FittedBox(child: Text('$ikon $t', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
+      ),
+    );
+
+/// Öğrencinin ekranında hocanın komutu: sayfanın üstünde büyük bir uyarı.
+extension _Uyari on Widget {
+  Widget sarUyari(String metin, bool kalici) {
+    if (metin.isEmpty) return this;
+    return Stack(children: [
+      Positioned.fill(child: this),
+      if (kalici) Positioned.fill(child: ColoredBox(color: Colors.black.withValues(alpha: .35))),
+      Positioned(
+        left: 16,
+        right: 16,
+        top: 40,
+        child: Material(
+          color: kalici ? const Color(0xFFC62828) : const Color(0xFF14284B),
+          elevation: 8,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(metin, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
+              if (kalici)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: Text('Hocanı dinle. Hocan "Devam" deyince mikrofon kendiliğinden açılır.',
+                      textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 13.5)),
+                ),
+            ]),
+          ),
+        ),
+      ),
+    ]);
+  }
 }
 
 Widget _buyuk(String t, Color c, VoidCallback f) => SizedBox(

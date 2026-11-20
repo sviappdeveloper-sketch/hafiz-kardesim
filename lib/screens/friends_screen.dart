@@ -9,6 +9,7 @@ import '../widgets/ornaments.dart';
 import 'friend_profile_screen.dart';
 import 'group_detail_screen.dart';
 import '../l10n/l10n.dart';
+import '../widgets/sekme_geri.dart';
 
 class FriendsScreen extends StatelessWidget {
   const FriendsScreen({super.key, required this.me, this.initialTab = 0});
@@ -22,6 +23,7 @@ class FriendsScreen extends StatelessWidget {
       initialIndex: initialTab,
       child: Scaffold(
         appBar: AppBar(
+          leading: SekmeGeri.dugme(context),
           title: Text(lt('Arkadaşlarım')),
           actions: [
             IconButton(tooltip: lt('Arkadaşınızı davet edin'), onPressed: SocialService.shareApp, icon: const Icon(Icons.share_outlined)),

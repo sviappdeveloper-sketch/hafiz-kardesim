@@ -19,6 +19,7 @@ import '../../utils/format.dart';
 import '../../widgets/guest.dart';
 import '../../widgets/ornaments.dart';
 import '../../widgets/prayer_card.dart';
+import '../../widgets/sekme_geri.dart';
 import '../admin_screen.dart';
 import '../audio_quran_screen.dart';
 import '../friends_screen.dart';
@@ -128,9 +129,13 @@ class _HafizAnaState extends State<HafizAna> {
               return Scaffold(
                 body: IndexedStack(index: _tab, children: [
                   _AnaSekme(me: me, baglar: baglar, bagIstek: bagIstek, ac: _ac, ezber: _ezber, sekme: (i) => setState(() => _tab = i)),
-                  me.isGuest ? GuestOnlyView(title: 'Hoca – Öğrenci') : HocaEkrani(me: me),
-                  me.isGuest ? GuestOnlyView(title: lt('Arkadaşlar')) : FriendsScreen(me: me),
-                  _DahaSekme(me: me, ac: _ac, destek: destek),
+                  SekmeGeri(
+                      anaya: () => setState(() => _tab = 0),
+                      child: me.isGuest ? GuestOnlyView(title: 'Hoca – Öğrenci') : HocaEkrani(me: me)),
+                  SekmeGeri(
+                      anaya: () => setState(() => _tab = 0),
+                      child: me.isGuest ? GuestOnlyView(title: lt('Arkadaşlar')) : FriendsScreen(me: me)),
+                  SekmeGeri(anaya: () => setState(() => _tab = 0), child: _DahaSekme(me: me, ac: _ac, destek: destek)),
                 ]),
                 bottomNavigationBar: _AltCubuk(
                   index: _tab,
@@ -458,7 +463,7 @@ class _DahaSekme extends StatelessWidget {
       ]),
     ];
     return Scaffold(
-      appBar: AppBar(title: const Text('Daha fazla'), automaticallyImplyLeading: false),
+      appBar: AppBar(title: const Text('Daha fazla'), automaticallyImplyLeading: false, leading: SekmeGeri.dugme(context)),
       body: PatternBackground(
         child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
           for (final g in gruplar)

@@ -98,7 +98,20 @@ extension FonemEslestir on Eslestirici {
       }
       return yeni;
     }
-    final y = fonemHizala(r, w, fKok, kesin: kesin);
+    var y = fonemHizala(r, w, fKok, kesin: kesin);
+    // Takılma kurtarma: uzun süredir okunduğu hâlde hiçbir kelime açılmıyorsa (bölümün başı
+    // bozuk duyuldu, ya da okuyucu geride bir yeri tekrar edip ilerledi) yalnızca son söylenen
+    // ~60 sese bakılır. Bu kuyruk ileride sağlamca oturursa oraya geçilir; aradaki kısa kısım
+    // okunmuş sayılır. Seri (hadr) okumada nefes alınmadığı için bölüm kapanmaz; bu yüzden gerekli.
+    var kuyrukBas = -1;
+    if (!kesin && y.son <= fKok && r.length >= 90) {
+      final k = r.length - 60;
+      final y2 = fonemHizala(r.substring(k), w, fKok, kesin: false, kuyruk: true);
+      if (y2.son > fKok) {
+        y = y2;
+        kuyrukBas = fOff + k;
+      }
+    }
     // Tekrar edilerek doğru okunan geri kelimeler: hatası düzelir.
     for (final i in y.duzelt) {
       final k = w[i];
@@ -123,6 +136,10 @@ extension FonemEslestir on Eslestirici {
     if (kesin) {
       fKok = cur;
       fOff = 0;
+    } else if (kuyrukBas >= 0) {
+      // Kuyruktan yakalandı: açılan son kelimeden sonrası yeni bölüm gibi sürer.
+      fKok = cur;
+      fOff = kuyrukBas + y.rAcik;
     } else if (y.sabitKelime > fKok && y.sabitR > 0) {
       // Bölüm uzadı (nefes alınmadan okunuyor): baştaki kesinleşmiş kısım bırakılır, hizalama
       // oradan sürer. Böylece hesap kısa kalır, eski kararlar yeniden bozulmaz.
@@ -134,7 +151,9 @@ extension FonemEslestir on Eslestirici {
 }
 
 class FonemYolu {
-  FonemYolu(this.son, this.durum, this.duyulan, this.sabitKelime, this.sabitR, this.duzelt);
+  FonemYolu(this.son, this.durum, this.duyulan, this.sabitKelime, this.sabitR, this.duzelt, [this.rAcik = 0]);
+  /// Duyulanın açılan son kelimeye kadar işlenen kısmı (harf sayısı).
+  final int rAcik;
   /// Bu kelimeye kadar (hariç) açılır.
   final int son;
   final List<int> durum;
@@ -147,10 +166,11 @@ class FonemYolu {
 
 /// Geri bağlam: kökten önceki (okunmuş) ~160 ses. Okuyucu ayeti tekrar edince ya da geri dönüp
 /// hatasını düzeltince ses buraya oturur; yeni (okunmamış) bir yer okunuyor sanılmaz.
-const _geriSes = 160;
+// Uzun ayetler (Bakara) tekrar edilince de oturabilsin diye bir uzun ayet kadar.
+const _geriSes = 400;
 
 /// Duyulan sade fonemleri ([r]) [kok] kelimesinden başlayan metne hizalar (düzenleme uzaklığı).
-FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) {
+FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin, bool kuyruk = false}) {
   final n = r.length;
   // Hedef metin: geri bağlam + kökten itibaren kelimelerin fonemleri (sınırdaki aynı ses teke iner).
   String fon(int i) {
@@ -183,14 +203,14 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) 
   final gb = gk < kBas.length ? kBas[gk] : m; // kökün metindeki yeri
   final rc = r.codeUnits, tc = ts.codeUnits;
   // Sure başında (ya da oturum başında) okunan eûzü-besmele: baştaki ~70 ses neredeyse bedava.
-  final girisSerbest = kok == 0 || (kok < w.length && w[kok].sureBasi);
+  final girisSerbest = !kuyruk && (kok == 0 || (kok < w.length && w[kok].sureBasi));
   const ekle = 1.0, sil = 1.0;
   final cols = m + 1;
   final d = Float32List((n + 1) * cols);
   final g = Uint8List((n + 1) * cols); // 0 köşegen, 1 ekle (fazla duyulan), 2 sil (duyulmayan)
   // Başlangıç: geri bağlamın herhangi bir yerinden bedava; kökten ileriye atlamak ise pahalı.
   for (var j = 1; j <= m; j++) {
-    d[j] = j <= gb ? 0 : (j - gb) * .5;
+    d[j] = j <= gb ? 0 : (j - gb) * (kuyruk ? .08 : .5);
     g[j] = 2;
   }
   for (var i = 1; i <= n; i++) {
@@ -312,6 +332,15 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) 
   for (var k = 0; k < u; k++) {
     durum.add(oran[k] >= .6 ? KD.dogru : (duydu[k] ? KD.hata : KD.atla));
   }
+  // Seri (hadr) okuma: hızlı okunan kelimede model sesleri yutar. İki yanı sağlam duyulan
+  // (akıcı okunan) bir kelimenin yarısına yakını duyulduysa ses tanımanın kaçırmasıdır, hata sayılmaz.
+  // Başka bir kelime okunduysa benzerlik çok daha düşük kalır ve hata olarak işaretlenir.
+  for (var k = 0; k < u; k++) {
+    if (durum[k] != KD.hata || oran[k] < .5) continue;
+    final once = k == 0 ? (gk > 0 ? 1.0 : 0.0) : oran[k - 1];
+    final sonra = k + 1 < u ? oran[k + 1] : 0.0;
+    if (once >= .75 && sonra >= .75) durum[k] = KD.dogru;
+  }
   // Duyulmayan boşluklar: tek ve kısa bir kelime ses tanımanın kaçırmasıdır (doğru), daha uzunu atlanmıştır.
   var k = 0;
   while (k < u) {
@@ -327,7 +356,21 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) 
     for (var z = k; z < e; z++) {
       harf += kSon[gk + z] - kBas[gk + z];
     }
-    if (e - k == 1 && harf <= 4 && e < u) durum[k] = KD.dogru;
+    // Seri okumada model kısa kelimeleri (و، في، من، ما) art arda yutabilir: önü ve arkası
+    // sağlam duyulan en çok 3 kısa kelimelik (toplam ~10 ses) boşluk da okunmuş sayılır.
+    final onceSaglam = k == 0 ? gk > 0 : durum[k - 1] == KD.dogru;
+    if (e < u && ((e - k == 1 && harf <= 4) || (onceSaglam && e - k <= 3 && harf <= 10))) {
+      for (var z = k; z < e; z++) {
+        durum[z] = KD.dogru;
+      }
+    }
+    // Kuyruktan yakalamada baştaki boşluk: okuyucu oradan geçti, bölümün başı bozuk duyuldu.
+    // Bir ayet kadarsa okunmuş sayılır.
+    if (kuyruk && k == 0 && e - k <= 15) {
+      for (var z = k; z < e; z++) {
+        durum[z] = KD.dogru;
+      }
+    }
     k = e;
   }
   var acik = u;
@@ -346,7 +389,9 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) 
     final mt = toplam(fs, bj);
     final q = mt / math.max(1, bj - fs);
     final atlama = fs - gb > 12;
-    if (q < (kesin ? .5 : .6) || (atlama && (q < .75 || mt < 12))) acik = 0;
+    // Uzun ve güçlü eşleşmede (seri okuma) eşik biraz düşer: yutulan sesler takılma yapmasın.
+    final esik = kesin ? .5 : (mt >= 24 ? .52 : .6);
+    if (q < esik || (atlama && (q < .75 || mt < 12))) acik = 0;
   }
   // Temkin: ara sonuçta hatalı/atlandı görünen kelimede durulur; ardından en az iki kelime
   // sağlam duyulmadıkça karar verilmez (okuyucu cümleyi bitirince ya da devam edince verilir).
@@ -378,5 +423,11 @@ FonemYolu fonemHizala(String r, List<Kelime> w, int kok, {required bool kesin}) 
       }
     }
   }
-  return FonemYolu(kok + acik, durum.sublist(0, acik), duyulan.sublist(0, acik), sabitKelime, sabitR, duzelt);
+  var rAcik = 0;
+  if (acik > 0) {
+    for (var q = kBas[gk]; q < kSon[gk + acik - 1]; q++) {
+      if (karsi[q] + 1 > rAcik) rAcik = karsi[q] + 1;
+    }
+  }
+  return FonemYolu(kok + acik, durum.sublist(0, acik), duyulan.sublist(0, acik), sabitKelime, sabitR, duzelt, rAcik);
 }

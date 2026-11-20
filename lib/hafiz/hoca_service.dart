@@ -48,6 +48,11 @@ class Canli {
   int get cur => (m['cur'] ?? 0) as int;
   String get canliMetin => (m['canli'] ?? '') as String;
   String get not => (m['not'] ?? '') as String;
+  /// İşaretleri en son yazan üye: öğrenci kendi yazdığı "cur"u geri almaz, hocanınkini uygular.
+  String get yazan => (m['yazan'] ?? '') as String;
+  /// Hocanın son komutu: dur / tekrar (ayeti yeniden oku) / bastan (baştan al) / devam.
+  String get komut => ((m['komut'] ?? const {}) as Map)['t'] as String? ?? '';
+  int get komutNo => (((m['komut'] ?? const {}) as Map)['n'] as num?)?.toInt() ?? 0;
   DateTime? get olusturma => (m['olusturma'] as Timestamp?)?.toDate();
   DateTime? get baslangic => (m['baslangic'] as Timestamp?)?.toDate();
 }
@@ -184,11 +189,25 @@ class HocaService {
 
   static Future<void> reddet(String id) => canlilar.doc(id).update({'durum': 'iptal'});
 
-  static Future<void> isaretle(String id, Map<int, int> m, Map<int, String> h, int cur, {String? canli}) {
+  static Future<void> isaretle(String id, Map<int, int> m, Map<int, String> h, int cur, {String? canli, String? yazan}) {
     final u = <String, Object>{'cur': cur};
+    if (yazan != null) u['yazan'] = yazan;
     m.forEach((k, v) => u['m.$k'] = v);
     h.forEach((k, v) => u['h.$k'] = v);
     if (canli != null) u['canli'] = canli;
+    return canlilar.doc(id).update(u);
+  }
+
+  /// Hocanın komutu (öğrencinin ekranında büyük uyarı olarak çıkar). [m]/[cur]: komutla birlikte
+  /// sıfırlanan kelimeler (yeniden oku / baştan al), tek yazımda gider.
+  static Future<void> komutGonder(String id, String t, String yazan, {Map<int, int> m = const {}, int? cur}) {
+    final u = <String, Object>{
+      'komut.t': t,
+      'komut.n': FieldValue.increment(1),
+      'yazan': yazan,
+    };
+    if (cur != null) u['cur'] = cur;
+    m.forEach((k, v) => u['m.$k'] = v);
     return canlilar.doc(id).update(u);
   }
 

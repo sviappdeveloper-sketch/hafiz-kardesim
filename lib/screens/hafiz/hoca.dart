@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../hafiz/hoca_service.dart';
 import '../../hafiz/kuran.dart';
@@ -10,6 +9,7 @@ import '../../services/social_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format.dart';
 import '../../widgets/ornaments.dart';
+import '../../widgets/sekme_geri.dart';
 import 'bildir.dart';
 import 'canli.dart';
 import 'ilerleme.dart';
@@ -28,6 +28,7 @@ class HocaEkrani extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Hoca – Öğrenci'),
         automaticallyImplyLeading: !sekmeli,
+        leading: sekmeli ? SekmeGeri.dugme(context) : null,
         actions: [IconButton(onPressed: () => ekleSayfasi(context, me), icon: const Icon(Icons.person_add_alt_1))],
       ),
       body: PatternBackground(
@@ -347,11 +348,15 @@ class _KodKartiState extends State<_KodKarti> {
                 },
           icon: const Icon(Icons.copy),
         ),
-        IconButton(
-          onPressed: _kod == null
-              ? null
-              : () => Share.share('Hafız Kardeşim\'de beni hoca/öğrenci olarak ekle. Kodum: $_kod'),
-          icon: const Icon(Icons.share),
+        Builder(
+          builder: (bc) => IconButton(
+            onPressed: _kod == null
+                ? null
+                : () async {
+                    await SocialService.paylas('Hafız Kardeşim\'de beni hoca/öğrenci olarak ekle. Kodum: $_kod', context: bc);
+                  },
+            icon: const Icon(Icons.share),
+          ),
         ),
       ]),
     );

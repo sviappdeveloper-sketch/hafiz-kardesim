@@ -99,6 +99,7 @@ class Ses {
     }
     _istek = true;
     _sonucsuz = 0;
+    _tekrarDeneme = 0;
     _buOturumdaSonuc = true;
     acik.value = true;
     _bekciKur();
@@ -111,6 +112,7 @@ class Ses {
   static bool _cihazda = true;
   static bool get cihazda => _cihazda && (SettingsService.prefs.getBool('hfCihazda') ?? true);
   static int _sonucsuz = 0;
+  static int _tekrarDeneme = 0;
   static bool _buOturumdaSonuc = false;
 
   static void _cihazdaKapat() {
@@ -226,7 +228,15 @@ class Ses {
       _yeniden(m.contains('busy') ? 400 : 150);
       return;
     }
+    // İnternet ya da ses aygıtı hatası çoğu zaman geçicidir: dinleme kapatılmadan birkaç kez
+    // sessizce yeniden denenir (eskiden ilk hatada mikrofon kapanıyor, kişi elle açmak zorunda kalıyordu).
+    if ((m.contains('network') || m.contains('server') || m.contains('audio')) && _tekrarDeneme < 4) {
+      _tekrarDeneme++;
+      _yeniden(500 * _tekrarDeneme);
+      return;
+    }
     String k = m;
+    if (m.contains('audio')) k = 'kayit';
     if (m.contains('permission')) k = 'izin';
     if (m.contains('network') || m.contains('server')) k = 'ag';
     if (m.contains('language')) k = 'dil';
@@ -243,6 +253,7 @@ class Ses {
     if (metin.isNotEmpty) {
       _buOturumdaSonuc = true;
       _sonucsuz = 0;
+      _tekrarDeneme = 0;
     }
     final tk = metin.split(RegExp(r'\s+')).where((x) => x.isNotEmpty).toList();
     // Kısmi sonuçta son kelime hâlâ yazılıyor olabilir: kesinleşene kadar beklenir…
@@ -286,7 +297,8 @@ class Ses {
   static String hataMetni(String k) => switch (k) {
         'izin' => 'Mikrofon izni gerekiyor. Telefon ayarlarından izin verebilirsin.',
         'kayit' => 'Mikrofon açılamadı. Başka bir uygulama mikrofonu kullanıyor olabilir.',
-        'ag' => 'Ses tanıma için internet bağlantısı gerekiyor.',
+        'ag' => 'Telefonun ses tanıması internete ulaşamadı. Uygulamanın kendi Kur\'an ses tanıması internetsiz çalışır; yeniden dene.',
+        'sessiz' => 'Mikrofondan ses gelmiyor. Telefon ya da WhatsApp araması sürerken telefon mikrofonu aramaya ayrılır, uygulama seni duyamaz. Bu durumda işaretlemeyi hocan yapar; ses tanıma için aramayı başka bir telefondan / bilgisayardan yapın.',
         'dil' => 'Telefonda Arapça ses tanıma yok. Google uygulaması › Ayarlar › Ses bölümünden Arapça ekleyebilirsin.',
         'yok' => 'Bu telefonda ses tanıma hizmeti bulunamadı. Düğmelerle devam edebilirsin.',
         _ => 'Ses tanıma hatası ($k)',

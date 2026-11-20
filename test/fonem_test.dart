@@ -152,6 +152,51 @@ void main() {
     oku(e, w, _ses(Kuran.ix(1, 2))); // Fâtiha 2 okunuyor
     expect(e.cur, c, reason: _durum(w));
   }, skip: !veriVar);
+
+  test('Seri (hadr) okuma: nefes almadan, yutulan harekeler ve kısa kelimelerle hata yazılmaz', () {
+    final b = Kuran.ix(36, 1);
+    final w = oturum(Kuran.aralik(b, b + 11));
+    final e = Eslestirici(w);
+    final r = math.Random(11);
+    const hareke = 'َُِ';
+    // Üçer ayet tek nefeste; harekelerin %25'i yutulur, her ayette kısa bir kelime hiç duyulmaz.
+    for (var ai = b; ai <= b + 11; ai += 3) {
+      final buf = StringBuffer();
+      for (var a = ai; a < ai + 3 && a <= b + 11; a++) {
+        final kel = _ham[a];
+        final kisa = [for (var k = 1; k < kel.length - 1; k++) if (Fonem.sade(kel[k]).length <= 4) k];
+        final yut = kisa.isEmpty ? -1 : kisa[r.nextInt(kisa.length)];
+        for (var k = 0; k < kel.length; k++) {
+          if (k == yut) continue;
+          buf.write(kel[k].split('').where((c) => !(hareke.contains(c) && r.nextDouble() < .25)).join());
+        }
+      }
+      oku(e, w, buf.toString());
+    }
+    final d = _durum(w);
+    expect('E'.allMatches(d).length + 'K'.allMatches(d).length <= 1, isTrue, reason: d);
+    expect(e.bitti, isTrue, reason: d);
+  }, skip: !veriVar);
+
+  test('Bozuk duyulan bölümden sonra takılmadan devam edilir (kuyruktan yakalama)', () {
+    final b = Kuran.ix(2, 1);
+    final w = oturum(Kuran.aralik(b, b + 6));
+    final e = Eslestirici(w);
+    oku(e, w, _ses(b) + _ses(b + 1));
+    final r = math.Random(3);
+    const harfler = 'بتثجحخدذرزسشصضطظعغفقكلمنهوي';
+    final cop = List.generate(70, (_) => harfler[r.nextInt(harfler.length)]).join();
+    final ses = cop + _ses(b + 2) + _ses(b + 3) + _ses(b + 4);
+    // Nefes yok: hepsi ara sonuç. Sonda 4. ayet bitmiş olmalı (okunmamış yer açılmadan).
+    for (var i = 3; i <= ses.length; i += 3) {
+      e.fonem(ses.substring(0, i), kesin: false);
+    }
+    e.fonem(ses, kesin: false);
+    final n4 = [for (var a = b; a <= b + 3; a++) _ham[a].length].reduce((x, y) => x + y);
+    final n5 = n4 + _ham[b + 4].length;
+    expect(e.cur >= n4, isTrue, reason: _durum(w));
+    expect(e.cur <= n5, isTrue, reason: _durum(w));
+  }, skip: !veriVar);
 }
 
 int _gecilen(int ai, int i) {

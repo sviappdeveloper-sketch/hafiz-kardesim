@@ -46,6 +46,8 @@ class Kulak {
   /// Modelin gerisinde kalan ses (saniye): telefon yetişemiyorsa ekranda gösterilir.
   static final gecikme = ValueNotifier<double>(0);
   static int _giden = 0;
+  static int _sessiz = 0;
+  static bool _sessizBildirildi = false;
   /// Gönderilen ve işçinin yanıtladığı son "sifirla" isteği: yanıt gelene kadar sonuçlar atılır.
   static int _istek = 0, _yanit = 0;
 
@@ -105,6 +107,8 @@ class Kulak {
     }
     _sonuc = sonuc;
     _hata = hata;
+    _sessiz = 0;
+    _sessizBildirildi = false;
     yeniBolum();
     try {
       final akis = await _kayit.startStream(const RecordConfig(
@@ -165,6 +169,17 @@ class Kulak {
       kare += v * v;
     }
     final rms = math.sqrt(kare / n);
+    // Tamamen sıfır ses: mikrofon başka uygulamaya (telefon / WhatsApp araması) ayrılmış,
+    // Android bu uygulamaya sessizlik veriyor. Bir kez haber verilir.
+    if (rms < 1e-5) {
+      _sessiz += n;
+      if (_sessiz >= _hz * 4 && !_sessizBildirildi) {
+        _sessizBildirildi = true;
+        _hata?.call('sessiz');
+      }
+    } else {
+      _sessiz = 0;
+    }
     // Ses şiddeti: dinleme dalgası için.
     Ses.seviye.value = Ses.seviye.value * .5 + (rms * 12).clamp(0.0, 1.0) * .5;
     _giden += n;
