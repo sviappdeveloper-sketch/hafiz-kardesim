@@ -58,12 +58,17 @@ class SesliBaglanti {
   /// STUN + (varsa) aktarma (TURN) sunucuları. TURN bilgisi Firestore app/ses belgesindeki
   /// "turnUrl"den (Metered) alınır; operatör doğrudan bağlantıya izin vermezse ses oradan geçer.
   static List<Map<String, dynamic>>? _turn;
+  static const _varsayilanTurn =
+      'https://hafizkardesim.metered.live/api/v1/turn/credentials?apiKey=58b851ae348822a7579277687d4eed5243e9';
   static Future<Map<String, dynamic>> _ayarlar() async {
     if (_turn == null) {
       final l = <Map<String, dynamic>>[];
       try {
         final d = await FirebaseFirestore.instance.collection('app').doc('ses').get();
-        final url = (d.data()?['turnUrl'] ?? '') as String;
+        // Yönetim › Ayarlar'da başka bir adres girilmediyse uygulamanın kendi Metered TURN kimliği
+        // (ücretsiz plan, ayda 500 MB; ön yüzde kullanılmak üzere verilen anahtar).
+        var url = (d.data()?['turnUrl'] ?? '') as String;
+        if (url.trim().isEmpty) url = _varsayilanTurn;
         if (url.startsWith('https://')) {
           final r = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
           final j = jsonDecode(r.body);
