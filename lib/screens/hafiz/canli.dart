@@ -221,23 +221,38 @@ class _CanliEkraniState extends State<CanliEkrani> {
     if (c != null) Scrollable.ensureVisible(c, alignment: .35, duration: const Duration(milliseconds: 250));
   }
 
-  void _yaz(Iterable<int> degisen, {String? duyulan}) {
+  /// İşaretleri Firestore'a toplu yazar. Elle işaretler ([hizli]) hemen (~0,25 sn) gider; ses
+  /// tanımanın açtığı kelimeler en çok 1,5 saniyede bir tek yazımda toplanır. Böylece bir ders
+  /// yüzlerce yerine birkaç yüz yazımda kalır (Firebase'in ücretsiz günlük kotası için).
+  void _yaz(Iterable<int> degisen, {bool hizli = false}) {
     for (final i in degisen) {
       _bekleyenM[i] = _w![i].st;
       if (_w![i].h.isNotEmpty) _bekleyenH[i] = _w![i].h;
     }
     setState(() {});
-    _yazT?.cancel();
-    _yazT = Timer(const Duration(milliseconds: 250), () async {
-      final m = Map<int, int>.from(_bekleyenM), h = Map<int, String>.from(_bekleyenH);
-      _bekleyenM.clear();
-      _bekleyenH.clear();
-      try {
-        await HocaService.isaretle(widget.id, m, h, _e!.cur, yazan: widget.me.id);
-      } catch (e) {
-        if (mounted) showSnack(context, errorText(e));
-      }
-    });
+    if (hizli || _yazT == null) {
+      _yazT?.cancel();
+      _yazT = Timer(Duration(milliseconds: hizli ? 250 : 1500), _gonder);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _kaydir());
+  }
+
+  /// Ekranda gösterilmek üzere hocaya giden "telefon duydu" metni (bir sonraki yazımla gider).
+  String? _bekleyenCanli;
+
+  Future<void> _gonder() async {
+    _yazT = null;
+    if (_e == null) return;
+    final m = Map<int, int>.from(_bekleyenM), h = Map<int, String>.from(_bekleyenH);
+    _bekleyenM.clear();
+    _bekleyenH.clear();
+    final canli = _bekleyenCanli;
+    _bekleyenCanli = null;
+    try {
+      await HocaService.isaretle(widget.id, m, h, _e!.cur, canli: canli, yazan: widget.me.id);
+    } catch (e) {
+      if (mounted) showSnack(context, errorText(e));
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _kaydir());
   }
 
@@ -250,7 +265,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
     e.cur++;
     e.sifirlaTampon();
     if (_kulak && Ses.acik.value) Kulak.yeniBolum();
-    _yaz([i]);
+    _yaz([i], hizli: true);
   }
 
   void _ayetDogru() {
@@ -264,7 +279,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
     }
     e.sifirlaTampon();
     if (_kulak && Ses.acik.value) Kulak.yeniBolum();
-    _yaz(d);
+    _yaz(d, hizli: true);
   }
 
   void _geriAl() {
@@ -274,7 +289,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
     _w![e.cur].st = KD.gizli;
     e.sifirlaTampon();
     if (_kulak && Ses.acik.value) Kulak.yeniBolum();
-    _yaz([e.cur]);
+    _yaz([e.cur], hizli: true);
   }
 
   Future<void> _dokun(int i) async {
@@ -303,7 +318,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
     );
     if (st == null) return;
     k.st = st;
-    _yaz([i]);
+    _yaz([i], hizli: true);
   }
 
   // ---------- hoca komutları: dur / yeniden oku / baştan al / devam ----------
@@ -445,10 +460,11 @@ class _CanliEkraniState extends State<CanliEkrani> {
 
   void _duyulanYaz(String m) {
     _duyulanN.value = m;
-    _canliT ??= Timer(const Duration(milliseconds: 1500), () {
+    _bekleyenCanli = m;
+    // İşaret yazımı yoksa duyulan metin en çok 4 saniyede bir ayrıca gider.
+    _canliT ??= Timer(const Duration(seconds: 4), () {
       _canliT = null;
-      if (_e == null) return;
-      HocaService.isaretle(widget.id, const {}, const {}, _e!.cur, canli: _duyulan, yazan: widget.me.id).catchError((_) {});
+      if (_bekleyenCanli != null && _yazT == null) _gonder();
     });
   }
 
@@ -545,6 +561,11 @@ class _CanliEkraniState extends State<CanliEkrani> {
     );
     if (ok != true) return;
     await _mikKapat();
+    // Bekleyen işaretler ders kapanmadan gönderilir.
+    if (_yazT != null) {
+      _yazT!.cancel();
+      await _gonder();
+    }
     if (_hocayim && _not.text.trim() != _c!.not) await HocaService.notYaz(widget.id, _not.text.trim());
     if (!mounted) return;
     await runGuarded(context, () => HocaService.bitir(widget.id));

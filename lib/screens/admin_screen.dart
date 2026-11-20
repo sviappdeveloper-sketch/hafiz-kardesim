@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -505,6 +506,8 @@ class _SettingsState extends State<_Settings> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            const _SesAyari(),
+            const SizedBox(height: 16),
             TextField(key: const Key('set_contact'), controller: _contact, decoration: InputDecoration(labelText: lt('İletişim e-postası'))),
             const SizedBox(height: 12),
             TextField(
@@ -640,4 +643,67 @@ class _Suistimaller extends StatelessWidget {
       },
     );
   }
+}
+
+/// Canlı ders sesli bağlantısı için aktarma (TURN) sunucusu. Bazı mobil operatörlerde iki telefon
+/// doğrudan bağlanamaz; o zaman ses bu sunucunun üzerinden geçer. Metered.ca'nın ücretsiz planındaki
+/// "kimlik adresi" (…metered.live/api/v1/turn/credentials?apiKey=…) yazılır. Firestore app/ses belgesinde durur.
+class _SesAyari extends StatefulWidget {
+  const _SesAyari();
+  @override
+  State<_SesAyari> createState() => _SesAyariState();
+}
+
+class _SesAyariState extends State<_SesAyari> {
+  final _url = TextEditingController();
+  bool _yuklendi = false;
+
+  @override
+  void initState() {
+    super.initState();
+    FirebaseFirestore.instance.collection('app').doc('ses').get().then((d) {
+      if (!mounted) return;
+      _url.text = (d.data()?['turnUrl'] ?? '') as String;
+      setState(() => _yuklendi = true);
+    }).catchError((_) {
+      if (mounted) setState(() => _yuklendi = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _url.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => OrnateCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('Canlı ders sesli bağlantısı (TURN)', style: AppText.body(15, weight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text('Bazı mobil operatörlerde telefonlar doğrudan bağlanamaz. Metered.ca ücretsiz hesabındaki TURN kimlik adresini yapıştırın.',
+              style: AppText.body(12.5, color: AppColors.muted)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _url,
+            enabled: _yuklendi,
+            decoration: const InputDecoration(labelText: 'https://….metered.live/api/v1/turn/credentials?apiKey=…'),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              onPressed: !_yuklendi
+                  ? null
+                  : () => runGuarded(
+                        context,
+                        () => FirebaseFirestore.instance.collection('app').doc('ses').set({'turnUrl': _url.text.trim()}, SetOptions(merge: true)),
+                        success: 'Kaydedildi',
+                      ),
+              child: const Text('Kaydet'),
+            ),
+          ),
+        ]),
+      );
 }

@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:http/http.dart' as http;
 
 import 'hoca_service.dart';
 
@@ -51,6 +54,36 @@ class SesliBaglanti {
   };
 
   bool get bagli => durum.value == 'bagli';
+
+  /// STUN + (varsa) aktarma (TURN) sunucuları. TURN bilgisi Firestore app/ses belgesindeki
+  /// "turnUrl"den (Metered) alınır; operatör doğrudan bağlantıya izin vermezse ses oradan geçer.
+  static List<Map<String, dynamic>>? _turn;
+  static Future<Map<String, dynamic>> _ayarlar() async {
+    if (_turn == null) {
+      final l = <Map<String, dynamic>>[];
+      try {
+        final d = await FirebaseFirestore.instance.collection('app').doc('ses').get();
+        final url = (d.data()?['turnUrl'] ?? '') as String;
+        if (url.startsWith('https://')) {
+          final r = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+          final j = jsonDecode(r.body);
+          if (j is List) {
+            for (final x in j) {
+              if (x is Map) l.add(x.cast<String, dynamic>());
+            }
+          }
+        }
+        _turn = l;
+      } catch (e) {
+        // Ulaşılamazsa bu bağlantı yalnız STUN ile kurulur; bir sonrakinde yeniden denenir.
+        debugPrint('SesliBaglanti TURN: $e');
+      }
+    }
+    return {
+      ..._ayar,
+      'iceServers': [...(_ayar['iceServers'] as List), ...?_turn],
+    };
+  }
 
   /// Hoca: yeni bir bağlantı teklifi verir (ilk açılışta ve "yeniden bağlan"da).
   Future<void> teklifVer() async {
@@ -118,7 +151,7 @@ class SesliBaglanti {
 
   Future<RTCPeerConnection> _kur() async {
     await _pcKapat();
-    final pc = await createPeerConnection(_ayar);
+    final pc = await createPeerConnection(await _ayarlar());
     _pc = pc;
     pc.onConnectionState = (st) {
       switch (st) {

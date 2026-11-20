@@ -13,3 +13,7 @@ build/
 assets/asr/model.int8.onnx
 assets/asr/tokens.txt
 assets/asr/fonem.json
+
+# Açılmış imza anahtarı asla depoya girmesin (yalnız kilitli anahtar.enc).
+android-keys/key.properties
+android-keys/*.jks

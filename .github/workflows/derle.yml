@@ -1,9 +1,12 @@
 name: Derle (Android)
 # (Depo açık: GitHub Actions dakikaları sınırsız.)
 
-# main'e her gönderimde (kod değiştiyse) ya da elle başlatılınca APK + AAB derler, "apk" dalına koyar.
-# Hata olursa ayrıntılar "log" dalına yazılır.
+# Derleme takvimi: ayın 1'i ve 15'i sabah (Türkiye 08:00) — yalnızca son derlemeden beri kod
+# değiştiyse. Ayrıca elle (Actions › Run workflow) ya da commit mesajında [derle] yazılınca derlenir.
+# Çıktılar "apk" dalına konur; hata olursa ayrıntılar "log" dalına yazılır.
 on:
+  schedule:
+    - cron: '0 5 1,15 * *'
   push:
     branches: [main]
     paths: ['lib/**', 'test/**', 'assets/**', 'tool/**', 'android-keys/**', 'pubspec.yaml', '.github/workflows/derle.yml']
@@ -13,7 +16,36 @@ permissions:
   contents: write
 
 jobs:
+  # Takvimli çalışmada son derlemeden beri değişiklik yoksa derleme yapılmaz.
+  kontrol:
+    runs-on: ubuntu-latest
+    outputs:
+      derle: ${{ steps.k.outputs.derle }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: k
+        env:
+          OLAY: ${{ github.event_name }}
+          MESAJ: ${{ github.event.head_commit.message }}
+        run: |
+          if [ "$OLAY" = "workflow_dispatch" ]; then echo "derle=1" >> $GITHUB_OUTPUT; exit 0; fi
+          if [ "$OLAY" = "push" ]; then
+            case "$MESAJ" in *"[derle]"*) echo "derle=1" >> $GITHUB_OUTPUT;; *) echo "derle=0" >> $GITHUB_OUTPUT;; esac
+            exit 0
+          fi
+          son=$(git show origin/apk:SURUM.txt 2>/dev/null | sed -n 's/.*commit: \([0-9a-f]*\).*/\1/p')
+          if [ -n "$son" ] && git cat-file -e "$son" 2>/dev/null && git diff --quiet "$son" HEAD -- lib test assets tool android-keys pubspec.yaml; then
+            echo "Son derlemeden ($son) beri değişiklik yok."
+            echo "derle=0" >> $GITHUB_OUTPUT
+          else
+            echo "derle=1" >> $GITHUB_OUTPUT
+          fi
+
   build:
+    needs: kontrol
+    if: needs.kontrol.outputs.derle == '1'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
@@ -45,6 +77,19 @@ jobs:
       - name: Paketler
         run: flutter pub get 2>&1 | tee /tmp/pub.txt
 
+      - name: İmza anahtarını aç
+        env:
+          ANAHTAR_SIFRE: ${{ secrets.ANAHTAR_SIFRE }}
+        run: |
+          if [ -z "$ANAHTAR_SIFRE" ]; then
+            # Kod denetimi ve testler yine çalışsın; APK adımında durulur.
+            echo "::warning title=ANAHTAR_SIFRE eksik::Depo ayarlarına ANAHTAR_SIFRE sırrı eklenmeli (imza anahtarının kilidi)."
+            echo "IMZA_YOK=1" >> $GITHUB_ENV
+            exit 0
+          fi
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in android-keys/anahtar.enc -pass env:ANAHTAR_SIFRE | tar -x -C android-keys
+          test -f android-keys/key.properties
+
       - name: Android'i yayına hazırla (ad, izinler, simge)
         run: |
           python3 tool/ci_android.py > /tmp/ci.txt 2>&1 || { cat /tmp/ci.txt; exit 1; }
@@ -62,6 +107,10 @@ jobs:
 
       - name: APK
         run: |
+          if [ "${IMZA_YOK:-}" = "1" ]; then
+            echo "::error title=ANAHTAR_SIFRE eksik::İmza anahtarı açılamadı; APK imzalanamaz. Depoya ANAHTAR_SIFRE sırrını ekleyin."
+            exit 1
+          fi
           set -o pipefail
           W=android/gradle/wrapper/gradle-wrapper.properties
           sed -i -E 's#^distributionUrl=.*/(gradle-[0-9.]+-(all|bin)\.zip)#distributionUrl=https\\://services.gradle.org/distributions/\1#' $W
