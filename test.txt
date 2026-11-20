@@ -1,0 +1,41 @@
+
+::group::✅ Passing tests
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Normalleştirme: Osmanlı hattı ile imlâ aynı sayılır
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Fâtiha doğru okununca bütün kelimeler doğru
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Atlanan ve yanlış kelime işaretlenir
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Hurûf-u mukattaa harf adlarıyla okunur
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: يا + ايها tek kelimeye eşleşir
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Lafız toleransı: ayetin %10'u içindeki atlama doğru sayılır
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Son kelime yarım duyulsa da doğru sayılır
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Tolerans %10'u aşan eksikleri doğru saymaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Sure geçişinde okunan besmele hata sayılmaz, sonraki sureyle devam edilir
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Sonradan eklenen ayetler sırayı sürdürür
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Puan: ipucu yarım sayılır
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Ses tanıma önceki kelimeleri birleştirse de yeni kelime kaybolmaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Kelime yazılırken baş tarafı duyulunca hemen açılır
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Ses tanımanın uydurduğu kelimeler okunmamış yeri açmaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Araya karışan gürültü hata saydırmaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Yanlış okunan kelime, okumaya devam edilince hatalı sayılır
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Tekrar okunan kelime ileride de geçiyorsa yer kaymaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Ses tanıma bir ayeti kaçırıp takılsa da okuyucu yeniden yakalanır (videodaki durum)
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Kelime söylenirken (yarısı duyulunca) hemen açılır
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Uzaktaki tek benzer kelime yüzünden ileri atlanmaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Kulak: söylenmekte olan yarım kelime açılmaz, kelime bitince açılır
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Kulak: bölümler art arda okununca hepsi doğru
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Kulak: gürültü okunmamış yeri açmaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Kulak: geride kalan kısım, sonraki cümle söylenince tamamlanır
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Kulak: kaçırılanları yanlış duyulan sözler arasından da bulur
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Kulak: yanlış okunan kelime hatalı işaretlenir
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/widget_test.dart: Kulak: ara sonuçta yanlış görünen kelime kırmızı yanmaz, cümle bitince karar verilir
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/fonem_test.dart: Fonem verisi: her ayetin kelime sayısı uygulamanınkiyle aynı
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/fonem_test.dart: Fâtiha akan sesle doğru okunur, okunmamış yer açılmaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/fonem_test.dart: Sure başında eûzü-besmele okunması sorun olmaz (Bakara 1-5)
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/fonem_test.dart: Atlanan ayet "atlandı", yanlış okunan kelime "hatalı" olur
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/fonem_test.dart: Gürültülü (%4 ses hatası) okumada yanlış hata yazılmaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/fonem_test.dart: Ayet tekrar edilince ileri atlanmaz; tekrarla hata düzelir
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/fonem_test.dart: Başka bir yerden okunan ayet okunmamış yeri açmaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/fonem_test.dart: Seri (hadr) okuma: nefes almadan, yutulan harekeler ve kısa kelimelerle hata yazılmaz
+✅ /home/runner/work/hafiz-kardesim/hafiz-kardesim/test/fonem_test.dart: Bozuk duyulan bölümden sonra takılmadan devam edilir (kuyruktan yakalama)
+::endgroup::
+
+🎉 36 tests passed.
