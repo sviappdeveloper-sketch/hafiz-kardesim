@@ -1,0 +1,5 @@
+Paket kimliği var: com.sviapp.hafizKardesim
+Apple ile Giriş yeteneği açıldı
+App Store Connect kaydı var: Hafız Kardeşim 6836739399
+Dağıtım sertifikası hazır: 2M98V8TK59
+App Store profili hazır: afe49a38-c5c8-46f9-8168-8b1d92d606f3
