@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../hafiz/kayit.dart';
 import '../../hafiz/kuran.dart';
@@ -247,22 +248,19 @@ class _SureDetay extends StatefulWidget {
 class _SureDetayState extends State<_SureDetay> {
   int get _s => widget.sure;
   late int _a1 = 1, _a2 = Kuran.ayetSayisi(_s);
+  void _bas(int v) => setState(() => _a1 = v);
+  void _son(int v) => setState(() => _a2 = v);
 
-  Widget _ayetSec(int v, ValueChanged<int> f) {
-    final n = Kuran.ayetSayisi(_s);
-    return DropdownButtonFormField<int>(
-      key: ValueKey('$_s-$v'),
-      initialValue: v.clamp(1, n),
-      isExpanded: true,
-      decoration: const InputDecoration(isDense: true),
-      items: [for (var i = 1; i <= n; i++) DropdownMenuItem(value: i, child: Text('$i. ayet'))],
-      onChanged: (x) {
-        if (x == null) return;
-        f(x);
-        if (_a2 < _a1) setState(() => _a2 = _a1);
-      },
-    );
-  }
+  /// Ayet numarası: elle yazılabilir ya da sağdaki oktan listeden seçilebilir.
+  Widget _ayetSec(String ad, int v, ValueChanged<int> f) => _AyetAlan(
+        key: ValueKey('ayet-$_s-$ad'),
+        deger: v,
+        enCok: Kuran.ayetSayisi(_s),
+        onChanged: (x) {
+          f(x);
+          if (_a2 < _a1) setState(() => _a2 = _a1);
+        },
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -284,9 +282,9 @@ class _SureDetayState extends State<_SureDetay> {
               Text('AYET ARALIĞI', style: AppText.label()),
               const SizedBox(height: 6),
               Row(children: [
-                Expanded(child: _ayetSec(_a1, (v) => setState(() => _a1 = v))),
+                Expanded(child: _ayetSec('bas', _a1, _bas)),
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('–')),
-                Expanded(child: _ayetSec(_a2, (v) => setState(() => _a2 = v))),
+                Expanded(child: _ayetSec('son', _a2, _son)),
               ]),
               const SizedBox(height: 8),
               Wrap(spacing: 6, children: [
@@ -331,4 +329,76 @@ class _CuzDetay extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Elle yazılabilen ayet numarası alanı (1–[enCok]); sağdaki oktan listeden de seçilir.
+class _AyetAlan extends StatefulWidget {
+  const _AyetAlan({super.key, required this.deger, required this.enCok, required this.onChanged});
+  final int deger, enCok;
+  final ValueChanged<int> onChanged;
+  @override
+  State<_AyetAlan> createState() => _AyetAlanState();
+}
+
+class _AyetAlanState extends State<_AyetAlan> {
+  late final _c = TextEditingController(text: '${widget.deger}');
+  final _odak = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Alandan çıkınca geçersiz/boş yazı son geçerli değere döner.
+    _odak.addListener(() {
+      if (!_odak.hasFocus) _c.text = '${widget.deger}';
+    });
+  }
+
+  @override
+  void didUpdateWidget(_AyetAlan old) {
+    super.didUpdateWidget(old);
+    // Değer dışarıdan değiştiyse (Tamamı / 5 ayet düğmeleri) yazı da güncellenir.
+    if (!_odak.hasFocus && _c.text != '${widget.deger}') _c.text = '${widget.deger}';
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    _odak.dispose();
+    super.dispose();
+  }
+
+  void _yazildi(String t) {
+    final v = int.tryParse(t.trim());
+    if (v == null || v < 1) return;
+    final x = v > widget.enCok ? widget.enCok : v;
+    if (x != v) {
+      _c.text = '$x';
+      _c.selection = TextSelection.collapsed(offset: _c.text.length);
+    }
+    widget.onChanged(x);
+  }
+
+  @override
+  Widget build(BuildContext context) => TextField(
+        controller: _c,
+        focusNode: _odak,
+        keyboardType: TextInputType.number,
+        textInputAction: TextInputAction.done,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(3)],
+        onChanged: _yazildi,
+        onSubmitted: (_) => _odak.unfocus(),
+        decoration: InputDecoration(
+          isDense: true,
+          suffixText: '. ayet',
+          suffixIcon: PopupMenuButton<int>(
+            tooltip: 'Listeden seç',
+            icon: const Icon(Icons.arrow_drop_down),
+            itemBuilder: (_) => [for (var i = 1; i <= widget.enCok; i++) PopupMenuItem(value: i, height: 36, child: Text('$i. ayet'))],
+            onSelected: (i) {
+              _c.text = '$i';
+              widget.onChanged(i);
+            },
+          ),
+        ),
+      );
 }
