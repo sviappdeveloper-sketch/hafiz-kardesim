@@ -109,19 +109,23 @@ class _RequestsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<List<FriendRequest>>(
       stream: SocialService.incomingRequests(me.id),
-      builder: (context, snap) {
+      builder: (context, snap) => StreamBuilder<List<SentFriendRequest>>(
+        stream: SocialService.outgoingRequests(me.id),
+        builder: (context, sentSnap) {
         if (!snap.hasData) return const LoadingView();
         final list = snap.data!;
-        if (list.isEmpty) {
+        final sent = sentSnap.data ?? const <SentFriendRequest>[];
+        if (list.isEmpty && sent.isEmpty) {
           return SingleChildScrollView(
             child: EmptyState(title: lt('Bekleyen istek yok'), message: lt('Size gelen arkadaşlık istekleri burada görünür.')),
           );
         }
         return ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: list.length,
+          itemCount: list.length + (sent.isEmpty ? 0 : 1),
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, i) {
+            if (i == list.length) return _SentRequestsCard(me: me, sent: sent);
             final r = list[i];
             return OrnateCard(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -149,7 +153,44 @@ class _RequestsTab extends StatelessWidget {
             );
           },
         );
-      },
+        },
+      ),
+    );
+  }
+}
+
+/// Gönderilen ve henüz yanıtlanmamış istekler; her biri iptal edilebilir.
+class _SentRequestsCard extends StatelessWidget {
+  const _SentRequestsCard({required this.me, required this.sent});
+  final AppUser me;
+  final List<SentFriendRequest> sent;
+
+  @override
+  Widget build(BuildContext context) {
+    return OrnateCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(lt('Gönderdiğiniz istekler'), style: AppText.display(20)),
+        const SizedBox(height: 4),
+        for (final s in sent)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: AppColors.inkDeep,
+              foregroundColor: AppColors.goldLight,
+              child: Text(s.toName.isNotEmpty ? s.toName.characters.first.toUpperCase() : '?'),
+            ),
+            title: Text(s.toName, style: AppText.body(15)),
+            subtitle: Text(lt('Yanıt bekleniyor'), style: AppText.body(12, color: AppColors.muted)),
+            trailing: TextButton(
+              onPressed: () => runGuarded(
+                context,
+                () => SocialService.cancelFriendRequest(me.id, s.toUid),
+                success: lt('{0} kişisine gönderilen istek iptal edildi.', [s.toName]),
+              ),
+              child: Text(lt('İsteği iptal et'), style: AppText.body(13, color: AppColors.gold)),
+            ),
+          ),
+      ]),
     );
   }
 }

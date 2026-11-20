@@ -84,6 +84,10 @@ class AuthService {
 
   static Future<void> updateName(String uid, String name) => users.doc(uid).update({'name': name.trim()});
 
+  /// Arkadaşlık isteklerini açar/kapatır (kapalıyken kimse yeni istek gönderemez).
+  static Future<void> setFriendRequestsOpen(String uid, bool open) =>
+      users.doc(uid).update({'friendRequestsOpen': open});
+
   static Future<void> login(String email, String password) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email.trim(), password: password);

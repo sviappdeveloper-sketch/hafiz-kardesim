@@ -39,6 +39,10 @@ class SocialService {
     if (toUid == me.id) throw HatimException(lt('Kendinize arkadaşlık isteği gönderemezsiniz.'));
     final ref = requests.doc(_pairId(me.id, toUid));
     await _db.runTransaction((tx) async {
+      final target = await tx.get(_db.collection('users').doc(toUid));
+      if (target.data()?['friendRequestsOpen'] == false) {
+        throw HatimException(lt('Bu kişi arkadaşlık isteklerini kapatmış.'));
+      }
       final d = await tx.get(ref);
       if (d.exists && d.data()!['status'] != 'red') {
         throw HatimException(lt('Bu kişiyle zaten bir istek ya da arkadaşlık var.'));
@@ -62,6 +66,29 @@ class SocialService {
           .where((d) => d.data()['status'] == 'bekliyor')
           .map((d) => FriendRequest(id: d.id, fromUid: d['fromUid'] as String, fromName: d['fromName'] as String))
           .toList());
+
+  /// Gönderdiğim ve hâlâ bekleyen istekler.
+  static Stream<List<SentFriendRequest>> outgoingRequests(String me) => requests
+      .where('fromUid', isEqualTo: me)
+      .snapshots()
+      .map((s) => s.docs
+          .where((d) => d.data()['status'] == 'bekliyor')
+          .map((d) => SentFriendRequest(id: d.id, toUid: d['toUid'] as String, toName: (d.data()['toName'] ?? '') as String))
+          .toList());
+
+  /// Gönderdiğim arkadaşlık isteğini geri çeker. Karşı taraf bu arada kabul
+  /// ettiyse arkadaşlığı silmez, hata verir.
+  static Future<void> cancelFriendRequest(String me, String otherUid) async {
+    final ref = requests.doc(_pairId(me, otherUid));
+    await _db.runTransaction((tx) async {
+      final d = await tx.get(ref);
+      final m = d.data();
+      if (!d.exists || m == null || m['status'] != 'bekliyor' || m['fromUid'] != me) {
+        throw HatimException(lt('Bu istek artık beklemede değil.'));
+      }
+      tx.delete(ref);
+    });
+  }
 
   static Future<void> respond(String requestId, bool accept) =>
       requests.doc(requestId).update({'status': accept ? 'kabul' : 'red', 'respondedAt': FieldValue.serverTimestamp()});

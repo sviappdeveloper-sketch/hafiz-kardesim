@@ -8,7 +8,7 @@ DateTime? _ts(dynamic v) => v is Timestamp ? v.toDate() : null;
 int _int(dynamic v) => v is num ? v.toInt() : 0;
 
 class AppUser {
-  AppUser({required this.id, required this.name, required this.gender, this.totalJuzRead = 0, this.hatimsJoined = 0, this.monthReads = const {}, this.monthLast = const {}, this.blocked = false, this.createdAt, this.duaRead = const {}});
+  AppUser({required this.id, required this.name, required this.gender, this.totalJuzRead = 0, this.hatimsJoined = 0, this.monthReads = const {}, this.monthLast = const {}, this.blocked = false, this.createdAt, this.duaRead = const {}, this.friendRequestsOpen = true});
   final String id;
   final String name;
   final String gender;
@@ -18,6 +18,8 @@ class AppUser {
   final Map<String, DateTime> monthLast;
   /// Yönetici tarafından engellenmiş üye.
   final bool blocked;
+  /// Başkaları bu kişiye arkadaşlık isteği gönderebilir mi (profil ayarı, varsayılan açık).
+  final bool friendRequestsOpen;
   /// Hangi grubun kaçıncı hatminin duasını okuduğu: grupId → hatim sayısı.
   final Map<String, int> duaRead;
   bool hasReadDua(HatimGroup g) => (duaRead[g.id] ?? 0) >= g.hatimCount;
@@ -49,6 +51,7 @@ class AppUser {
       blocked: m['blocked'] == true,
       duaRead: ((m['duaRead'] ?? const {}) as Map).map((k, v) => MapEntry(k as String, _int(v))),
       createdAt: _ts(m['createdAt']),
+      friendRequestsOpen: m['friendRequestsOpen'] != false,
     );
   }
 }
@@ -194,6 +197,12 @@ class Friend {
 class FriendRequest {
   FriendRequest({required this.id, required this.fromUid, required this.fromName});
   final String id, fromUid, fromName;
+}
+
+/// Benim gönderdiğim, henüz yanıtlanmamış arkadaşlık isteği.
+class SentFriendRequest {
+  SentFriendRequest({required this.id, required this.toUid, required this.toName});
+  final String id, toUid, toName;
 }
 
 class GroupInvite {

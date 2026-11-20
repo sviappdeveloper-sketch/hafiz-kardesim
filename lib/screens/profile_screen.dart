@@ -21,6 +21,17 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late final _name = TextEditingController(text: widget.me.name);
   bool _busy = false;
+  late bool _requestsOpen = widget.me.friendRequestsOpen;
+
+  Future<void> _setRequestsOpen(bool open) async {
+    setState(() => _requestsOpen = open);
+    final ok = await runGuarded(
+      context,
+      () => AuthService.setFriendRequestsOpen(widget.me.id, open),
+      success: open ? lt('Arkadaşlık istekleri açıldı.') : lt('Arkadaşlık istekleri kapatıldı.'),
+    );
+    if (!ok && mounted) setState(() => _requestsOpen = !open);
+  }
 
   Future<void> _save() async {
     if (_name.text.trim().length < 2) {
@@ -107,6 +118,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 8),
             Text(lt('Hanım / Bey bilgisi grup kuralları gereği sonradan değiştirilemez.'),
                 style: AppText.body(12, color: AppColors.muted)),
+            if (!me.isGuest) ...[
+              const SizedBox(height: 14),
+              OrnateCard(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: SwitchListTile(
+                  value: _requestsOpen,
+                  onChanged: _setRequestsOpen,
+                  secondary: Icon(Icons.person_add_alt_1_outlined, color: AppColors.gold),
+                  activeThumbColor: AppColors.inkDeep,
+                  activeTrackColor: AppColors.gold,
+                  title: Text(lt('Arkadaşlık isteklerine açık'), style: AppText.body(15, weight: FontWeight.w600)),
+                  subtitle: Text(
+                    _requestsOpen
+                        ? lt('Diğer üyeler size arkadaşlık isteği gönderebilir.')
+                        : lt('Kimse size yeni arkadaşlık isteği gönderemez. Mevcut arkadaşlarınız kalır.'),
+                    style: AppText.body(12.5, color: AppColors.muted),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 18),
             GoldButton(label: lt('Kaydet'), busy: _busy, onPressed: _save),
             const SizedBox(height: 12),

@@ -736,18 +736,40 @@ class _FriendButton extends StatelessWidget {
           case Relation.friends:
             return Tooltip(message: lt('Arkadaşınız'), child: Icon(Icons.people, color: AppColors.done, size: 20));
           case Relation.sent:
-            return Text(lt('İstek gitti'), style: AppText.body(12, color: AppColors.muted));
+            return Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(lt('İstek gitti'), style: AppText.body(12, color: AppColors.muted)),
+              IconButton(
+                tooltip: lt('İsteği iptal et'),
+                icon: Icon(Icons.close, color: AppColors.muted, size: 18),
+                onPressed: () => runGuarded(
+                  context,
+                  () => SocialService.cancelFriendRequest(me.id, otherId),
+                  success: lt('{0} kişisine gönderilen istek iptal edildi.', [otherName]),
+                ),
+              ),
+            ]);
           case Relation.received:
             return Text(lt('Size istek gönderdi'), style: AppText.body(12, color: AppColors.gold));
           default:
-            return IconButton(
-              tooltip: lt('Arkadaşlık isteği gönder'),
-              icon: Icon(Icons.person_add_alt_1_outlined, color: AppColors.gold),
-              onPressed: () => runGuarded(
-                context,
-                () => SocialService.sendFriendRequest(me, otherId, otherName),
-                success: lt('{0} kişisine arkadaşlık isteği gönderildi.', [otherName]),
-              ),
+            return StreamBuilder<AppUser?>(
+              stream: AuthService.userStream(otherId),
+              builder: (context, userSnap) {
+                if (userSnap.data?.friendRequestsOpen == false) {
+                  return Tooltip(
+                    message: lt('Bu kişi arkadaşlık isteklerini kapatmış.'),
+                    child: Icon(Icons.person_off_outlined, color: AppColors.muted, size: 20),
+                  );
+                }
+                return IconButton(
+                  tooltip: lt('Arkadaşlık isteği gönder'),
+                  icon: Icon(Icons.person_add_alt_1_outlined, color: AppColors.gold),
+                  onPressed: () => runGuarded(
+                    context,
+                    () => SocialService.sendFriendRequest(me, otherId, otherName),
+                    success: lt('{0} kişisine arkadaşlık isteği gönderildi.', [otherName]),
+                  ),
+                );
+              },
             );
         }
       },
