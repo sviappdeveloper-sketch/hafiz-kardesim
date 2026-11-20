@@ -1,7 +1,7 @@
 name: hafiz_kardesim
 description: "Hafız Kardeşim — Kur'an ezberini dinletme uygulaması"
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.1+1
 
 environment:
   sdk: ">=3.7.0 <4.0.0"
