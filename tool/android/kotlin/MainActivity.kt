@@ -102,6 +102,17 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        // Canlı derste uygulama içi sesli bağlantı (WebRTC): mikrofon aramaya ayrıldığı için
+        // ses tanıma (Kulak) aynı mikrofon sesini WebRTC'nin yerel ses izinden alır.
+        val ses = WebrtcSesKoprusu()
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, "hafiz/webrtc_ses").setStreamHandler(ses)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "hafiz/webrtc").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "dinle" -> result.success(ses.dinle(call.argument<String>("iz") ?: ""))
+                "birak" -> { ses.birak(); result.success(true) }
+                else -> result.notImplemented()
+            }
+        }
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, "hatim/kible")
             .setStreamHandler(KibleStream(applicationContext, this))
         // Pil kısıtlaması: ekran kapalıyken ezan bildiriminin zamanında gelmesi için.

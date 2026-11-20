@@ -13,7 +13,9 @@ if 'android.permission.INTERNET' not in m:
 m = re.sub(r'android:label="[^"]*"', 'android:label="Hafız Kardeşim"', m, count=1)
 # Bildirimler (flutter_local_notifications): izinler ve zamanlanmış bildirim alıcıları.
 perms = ['android.permission.POST_NOTIFICATIONS', 'android.permission.RECEIVE_BOOT_COMPLETED',
-         'android.permission.VIBRATE', 'android.permission.SCHEDULE_EXACT_ALARM']
+         'android.permission.VIBRATE', 'android.permission.SCHEDULE_EXACT_ALARM',
+         # Canlı derste uygulama içi sesli bağlantı (hoparlör / kulaklık seçimi).
+         'android.permission.MODIFY_AUDIO_SETTINGS']
 for p_ in perms:
     if p_ not in m:
         m = m.replace('<application', f'<uses-permission android:name="{p_}"/>\n    <application', 1)

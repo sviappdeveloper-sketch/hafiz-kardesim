@@ -35,6 +35,8 @@ dependencies:
   record: ^6.1.1
   sherpa_onnx: ">=1.12.10 <3.0.0"
   http: ^1.2.2
+  # Canlı derste uygulama içi sesli bağlantı (hoca ile öğrenci arasında, eşler arası)
+  flutter_webrtc: ^1.0.0
 
 # path_provider_android'in JNI'li yeni sürümleri bu uygulamada "ClassNotFoundException:
 # android/content/Context" verip çalışma geçmişini ve model dosyalarını açtırmıyor: eski (Pigeon'lu) sürüme sabit.

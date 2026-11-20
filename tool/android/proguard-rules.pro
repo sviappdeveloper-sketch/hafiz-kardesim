@@ -21,3 +21,8 @@
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
 -dontwarn com.google.gson.**
+
+# Canlı ders sesli bağlantısı (flutter_webrtc): yerel ses izine yansıma ile ulaşılır, adlar korunmalı.
+-keep class org.webrtc.** { *; }
+-keep class com.cloudwebrtc.webrtc.** { *; }
+-dontwarn org.webrtc.**

@@ -98,11 +98,26 @@ class Kulak {
   }
 
   /// Dinlemeyi başlatır. [sonuc]: bölümün o ana kadar duyulan fonemleri, [kesin]: bölüm bitti.
+  /// [kaynak]: mikrofon yerine bu akıştaki ses (16 kHz, 16 bit PCM) dinlenir. Canlı derste mikrofon
+  /// uygulama içi sesli bağlantıya (WebRTC) ayrıldığında sesi oradan almak için.
   static Future<bool> baslat({
     required void Function(String duyulan, bool kesin) sonuc,
     void Function(String hata)? hata,
+    Stream<Uint8List>? kaynak,
   }) async {
     if (!await hazirla()) return false;
+    if (kaynak != null) {
+      _sonuc = sonuc;
+      _hata = hata;
+      _sessiz = 0;
+      _sessizBildirildi = false;
+      _dis = true;
+      yeniBolum();
+      _akis = kaynak.listen(_geldi);
+      Ses.acik.value = true;
+      return true;
+    }
+    _dis = false;
     if (!await _kayit.hasPermission()) {
       hata?.call('izin');
       return false;
@@ -142,13 +157,19 @@ class Kulak {
     _isciPort!.send(['sifirla', ++_istek]);
   }
 
+  /// Ses dışarıdan (sesli bağlantıdan) mı geliyor.
+  static bool _dis = false;
+
   static Future<void> durdur() async {
     final a = _akis;
     _akis = null;
     await a?.cancel();
-    try {
-      await _kayit.stop();
-    } catch (_) {}
+    if (!_dis) {
+      try {
+        await _kayit.stop();
+      } catch (_) {}
+    }
+    _dis = false;
     // Son bölüm de işlensin: sona biraz sessizlik eklenip kesin sonuç istenir.
     _bitis = _sonuc;
     _sonuc = null;

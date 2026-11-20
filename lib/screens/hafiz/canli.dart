@@ -11,6 +11,7 @@ import '../../hafiz/kayit.dart';
 import '../../hafiz/kulak.dart';
 import '../../hafiz/kuran.dart';
 import '../../hafiz/ses.dart';
+import '../../hafiz/sesli_baglanti.dart';
 import '../../hafiz/yedek.dart';
 import '../../models/models.dart';
 import '../../services/settings_service.dart';
@@ -120,6 +121,11 @@ class _CanliEkraniState extends State<CanliEkrani> {
   Timer? _uyariT;
   /// Hoca "Dur" dedi: öğrencinin mikrofonu duraklatıldı; "Devam"da yeniden açılır.
   bool _durdu = false, _mikAcikti = false;
+  /// Uygulama içi sesli bağlantı (ders aktif olunca kurulur).
+  SesliBaglanti? _ses;
+  String _sesDurum = 'kapali';
+  /// Kulak, sesi sesli bağlantıdan mı alıyor.
+  bool _kulakBaglantidan = false;
 
   bool get _hocayim => _c != null && _c!.hoca == widget.me.id;
 
@@ -138,6 +144,8 @@ class _CanliEkraniState extends State<CanliEkrani> {
   void dispose() {
     Ses.acik.removeListener(_yenile);
     _mikKapat(bosalt: false);
+    _ses?.durum.removeListener(_sesDegisti);
+    _ses?.kapat();
     _uyariT?.cancel();
     _sub?.cancel();
     _canliT?.cancel();
@@ -182,6 +190,13 @@ class _CanliEkraniState extends State<CanliEkrani> {
     } else if (c.yazan.isEmpty && _bekleyenM.isEmpty) {
       _e!.cur = yeniCur;
     }
+    if (c.durum == 'aktif' && _ses == null) {
+      final b = SesliBaglanti(canliId: c.id, hocayim: _hocayim);
+      _ses = b;
+      b.durum.addListener(_sesDegisti);
+      if (_hocayim) b.teklifVer();
+    }
+    _ses?.guncelle(c);
     if (c.komutNo != _komutNo) {
       final ilk = _komutNo < 0;
       _komutNo = c.komutNo;
@@ -389,8 +404,38 @@ class _CanliEkraniState extends State<CanliEkrani> {
     setState(() {});
   }
 
+  /// Sesli bağlantı durumu değişti. Öğrencide mikrofon tek yerde olabilir: bağlantı kurulurken
+  /// telefonun kendi mikrofon dinlemesi bırakılır, bağlanınca ses tanıma sesi bağlantıdan alır.
+  Future<void> _sesDegisti() async {
+    final b = _ses;
+    if (b == null || !mounted) return;
+    final d = b.durum.value;
+    final once = _sesDurum;
+    _sesDurum = d;
+    setState(() {});
+    if (_hocayim) return;
+    if (d == 'baglaniyor' && Ses.acik.value && !_kulakBaglantidan) {
+      _mikAcikti = true;
+      await _mikKapat();
+    }
+    if (d == 'bagli' && once != 'bagli') {
+      // Ses köprüsünün hazır olması için kısa bekleme.
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      if (!mounted || _durdu) return;
+      if (_mikAcikti || !Ses.acik.value) {
+        _mikAcikti = false;
+        if (Ses.acik.value) await _mikKapat();
+        await _mikrofon();
+      }
+    }
+    if ((d == 'hata' || d == 'koptu' || d == 'kapali') && _kulakBaglantidan && Ses.acik.value) {
+      await _mikKapat();
+    }
+  }
+
   // ---------- öğrenci: sesli tanıma ----------
   Future<void> _mikKapat({bool bosalt = true}) async {
+    _kulakBaglantidan = false;
     if (_kulak) {
       await Kulak.durdur();
     } else {
@@ -422,10 +467,25 @@ class _CanliEkraniState extends State<CanliEkrani> {
       _mikAcikti = true;
       return;
     }
+    // Uygulama içi sesli bağlantı sürerken mikrofon bağlantıdadır: ses tanıma sesi oradan alır.
+    final b = _ses;
+    final baglantidan = b != null && (b.bagli || b.durum.value == 'baglaniyor');
+    if (b != null && baglantidan) {
+      if (!b.bagli) {
+        _mikAcikti = true;
+        showSnack(context, 'Sesli bağlantı kuruluyor… bağlanınca dinlemeye başlar.');
+        return;
+      }
+      if (!b.tanimayaAkar.value || !Kulak.kullanilabilir) {
+        showSnack(context, 'Sesli bağlantı sürerken bu telefonda ses tanıma çalışmıyor. Hocan seni duyuyor ve işaretliyor.');
+        return;
+      }
+    }
     // 1) Uygulamanın kendi Kur'an ses tanıması (Kulak): internetsiz, harf adlarını (الم) ve seri
     // (hadr) okumayı telefonun genel ses tanımasından çok daha iyi duyar.
     if (Kulak.kullanilabilir) {
       final ok = await Kulak.baslat(
+        kaynak: baglantidan ? SesliBaglanti.mikrofonSesi : null,
         sonuc: (duyulan, kesin) {
           if (!mounted || _e == null || _durdu) return;
           final e = _e!;
@@ -443,9 +503,10 @@ class _CanliEkraniState extends State<CanliEkrani> {
       );
       if (ok) {
         _kulak = true;
+        _kulakBaglantidan = baglantidan;
         return;
       }
-      if (Ses.acik.value) return;
+      if (Ses.acik.value || baglantidan) return;
     }
     // 2) Model açılamazsa telefonun ses tanıması.
     _kulak = false;
@@ -553,7 +614,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
                   style: AppText.display(20),
                 ),
                 const SizedBox(height: 8),
-                Text('${Kuran.etiketListe(c.ayetler)}\n\nSesi duymak için birbirinizi telefonla ya da WhatsApp\'tan arayın.',
+                Text('${Kuran.etiketListe(c.ayetler)}\n\nDers başlayınca sesli bağlantı uygulamanın içinden kurulur; ayrıca aramanıza gerek yok.',
                     textAlign: TextAlign.center, style: AppText.body(14, color: AppColors.muted)),
                 const SizedBox(height: 20),
                 if (c.baslatan == widget.me.id)
@@ -604,6 +665,7 @@ class _CanliEkraniState extends State<CanliEkrani> {
                 style: AppText.body(12.5),
               ),
             ),
+            _sesSeridi(),
             Expanded(
               child: OkumaZemini(
                 child: SingleChildScrollView(
@@ -637,6 +699,42 @@ class _CanliEkraniState extends State<CanliEkrani> {
           ]),
         ).sarUyari(_uyari, _durdu && !_hocayim),
       ),
+    );
+  }
+
+  /// Sesli bağlantının durumu: bağlı / bağlanıyor / kurulamadı; hocada mikrofon ve yeniden bağlan.
+  Widget _sesSeridi() {
+    final b = _ses;
+    if (b == null) return const SizedBox();
+    final d = _sesDurum;
+    final (ikon, metin, renk) = switch (d) {
+      'bagli' => (Icons.volume_up_rounded, _hocayim ? 'Sesli bağlı · öğrencini duyuyorsun' : 'Sesli bağlı · hocan seni duyuyor', AppColors.done),
+      'baglaniyor' => (Icons.sync, 'Sesli bağlantı kuruluyor…', AppColors.goldLight),
+      'koptu' => (Icons.portable_wifi_off, 'Ses bağlantısı koptu', AppColors.danger),
+      'hata' => (Icons.error_outline, 'Sesli bağlantı kurulamadı. İnterneti kontrol edin ya da telefonla arayın.', AppColors.danger),
+      _ => (Icons.volume_off, 'Sesli bağlantı kapalı', AppColors.muted),
+    };
+    return Container(
+      width: double.infinity,
+      color: renk.withValues(alpha: .12),
+      padding: const EdgeInsets.fromLTRB(12, 2, 4, 2),
+      child: Row(children: [
+        Icon(ikon, size: 18, color: renk),
+        const SizedBox(width: 8),
+        Expanded(child: Text(metin, style: AppText.body(12.5, color: renk))),
+        if (_hocayim && (d == 'hata' || d == 'koptu' || d == 'kapali'))
+          TextButton(onPressed: b.teklifVer, child: const Text('Yeniden bağlan')),
+        if (d == 'bagli' || d == 'baglaniyor')
+          ValueListenableBuilder<bool>(
+            valueListenable: b.sessiz,
+            builder: (_, v, __) => IconButton(
+              tooltip: v ? 'Mikrofonumu aç' : 'Mikrofonumu kapat',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => b.sessizYap(!v),
+              icon: Icon(v ? Icons.mic_off_rounded : Icons.mic_rounded, color: v ? AppColors.danger : renk),
+            ),
+          ),
+      ]),
     );
   }
 

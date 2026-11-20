@@ -53,6 +53,8 @@ class Canli {
   /// Hocanın son komutu: dur / tekrar (ayeti yeniden oku) / bastan (baştan al) / devam.
   String get komut => ((m['komut'] ?? const {}) as Map)['t'] as String? ?? '';
   int get komutNo => (((m['komut'] ?? const {}) as Map)['n'] as num?)?.toInt() ?? 0;
+  /// Uygulama içi sesli bağlantının (WebRTC) teklif / cevap bilgileri.
+  Map<String, dynamic> get ses => ((m['ses'] ?? const {}) as Map).cast<String, dynamic>();
   DateTime? get olusturma => (m['olusturma'] as Timestamp?)?.toDate();
   DateTime? get baslangic => (m['baslangic'] as Timestamp?)?.toDate();
 }
@@ -210,6 +212,9 @@ class HocaService {
     m.forEach((k, v) => u['m.$k'] = v);
     return canlilar.doc(id).update(u);
   }
+
+  /// Sesli bağlantı bilgisi yazar (ör. {'ses.teklif': …}).
+  static Future<void> sesYaz(String id, Map<String, Object?> u) => canlilar.doc(id).update(u);
 
   static Future<void> notYaz(String id, String not) => canlilar.doc(id).update({'not': not});
 
