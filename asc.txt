@@ -1,0 +1,94 @@
+Uygulama: Hafız Kardeşim 6836739399 birincil dil: tr
+
+== Uygulama bilgileri
+HATA PATCH /appInfos/911a5b31-0c3b-499e-abb8-b3e9d33bd04f -> 409 {
+  "errors" : [ {
+    "id" : "4c3c781a-d77e-49a8-a1d3-fd0d04a76d7a",
+    "status" : "409",
+    "code" : "ENTITY_ERROR.RELATIONSHIP.INVALID_STATE",
+    "title" : "A relationship value is not acceptable for the current resource state.",
+    "source" : {
+      "pointer" : "/data/relationships/primaryCategory"
+    }
+  }, {
+    "id" : "40e83ece-5758-4c3c-aca7-8741d8f0ad8e",
+    "status" : "409",
+    "code" : "ENTITY_ERROR.RELATIONSHIP.INVALID_STATE",
+    "title" : "A relationship value is not acceptable for the current resource state.",
+    "source" : {
+      "pointer" : "/data/relationships/secondaryCategory"
+    }
+  } ]
+}
+HATA PATCH /appInfoLocalizations/5a28b7b4-19fd-4c39-96d4-eb3c95c4ddbc -> 409 {
+  "errors" : [ {
+    "id" : "d8daf612-21fa-469f-9119-c918b435671f",
+    "status" : "409",
+    "code" : "ENTITY_ERROR.ATTRIBUTE.INVALID.INVALID_STATE",
+    "title" : "There is a problem with the request entity",
+    "detail" : "The field 'name' can not be modified in the current state.",
+    "source" : {
+      "pointer" : "/data/attributes/name"
+    }
+  }, {
+    "id" : "8bb55b1c-905c-4df9-83d9-6614fea95666",
+    "status" : "409",
+    "code" : "ENTITY_ERROR.ATTRIBUTE.INVALID.INVALID_STATE",
+    "title" : "There is a problem with the request entity",
+    "detail" : "The field 'subtitle' can not be modified in the current state.",
+    "source" : {
+      "pointer" : "/data/attributes/subtitle"
+
+HATA PATCH /appInfoLocalizations/5a28b7b4-19fd-4c39-96d4-eb3c95c4ddbc -> 409 {
+  "errors" : [ {
+    "id" : "adffcaed-4a75-4a48-83ff-687de6267efb",
+    "status" : "409",
+    "code" : "ENTITY_ERROR.ATTRIBUTE.INVALID.INVALID_STATE",
+    "title" : "There is a problem with the request entity",
+    "detail" : "The field 'subtitle' can not be modified in the current state.",
+    "source" : {
+      "pointer" : "/data/attributes/subtitle"
+    }
+  }, {
+    "id" : "aa632ab8-dad6-438d-9465-8b1420032ced",
+    "status" : "409",
+    "code" : "ENTITY_ERROR.ATTRIBUTE.INVALID.INVALID_STATE",
+    "title" : "There is a problem with the request entity",
+    "detail" : "The field 'privacyPolicyUrl' can not be modified in the current state.",
+    "source" : {
+      "pointer" : "/data/attri
+   !! Uygulama bilgileri tamamlanamadı: HTTP Error 409: Conflict
+Yeni sürüm açıldı: 1.0.1
+Sürüm: 1.0.1 PREPARE_FOR_SUBMISSION
+
+== Telif
+
+== Sürüm metinleri
+   açıklama, anahtar kelimeler, tanıtım metni, destek adresi yazıldı
+
+== Ekran görüntüleri
+   yüklendi: 1.png
+   yüklendi: 2.png
+   yüklendi: 3.png
+   yüklendi: 4.png
+   yüklendi: 5.png
+   yüklendi: 6.png
+
+== İçerik hakları
+
+== İnceleme bilgileri
+   iletişim ve inceleme notu yazıldı
+
+== Derleme
+
+== Kontroller
+   fiyat planı var
+
+(İncelemeye gönderilmedi. Hazır olunca 'App Store: incelemeye gönder' işlemini çalıştır.)
+
+== EKSİKLER / ELLE YAPILACAKLAR
+ - Kategori ayarlanamadı: Uygulama Bilgileri > Kategori = Eğitim
+ - Uygulama bilgileri: otomatik yapılamadı (yukarıdaki HATA satırına bak)
+ - 1.0.1 sürümü için yüklenmiş derleme yok: önce 'iOS TestFlight' işlemini çalıştır (Codemagic 'iOS TestFlight').
+ - App Privacy (Uygulama Gizliliği) formu API ile doldurulamıyor: yanıtlar app-store/README.md içinde. Formu bir kez doldurup 'Yayımla' demen yeterli.
+Bitti.
