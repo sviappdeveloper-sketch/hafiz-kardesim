@@ -1,7 +1,6 @@
 name: Firebase Hosting yayınla
 # hatim-kardesim.firebaseapp.com/.well-known/assetlinks.json: Firebase e-postalarındaki şifre yenileme
 # bağlantıları Android'de doğrudan Hatim Kardeşim uygulamasını açsın diye (doğrulanmış uygulama bağlantısı).
-# Firestore kurallarıyla aynı FIREBASE_SA sırrını kullanır.
 on:
   push:
     branches: [main]
@@ -10,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   yayinla:
@@ -23,19 +23,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Anahtar
-        env:
-          SA: ${{ secrets.FIREBASE_SA }}
-        run: |
-          if [ -z "$SA" ]; then
-            echo "::error title=FIREBASE_SA eksik::Depo ayarlarına FIREBASE_SA sırrı (hizmet hesabı JSON) eklenmeli."
-            exit 1
-          fi
-          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+      # Anahtarsız giriş: GitHub, Google Cloud'daki "github" kimlik havuzu üzerinden yalnızca bu deponun
+      # main dalı için github-deploy hizmet hesabı yetkisiyle çalışır (indirilmiş gizli anahtar yok).
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/668036405824/locations/global/workloadIdentityPools/github/providers/hafiz-repo
+          service_account: github-deploy@hatim-kardesim.iam.gserviceaccount.com
       - name: Hosting'i yayınla
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: npx -y firebase-tools@latest deploy --only hosting --project hatim-kardesim --non-interactive
-      - name: Anahtarı sil
-        if: always()
-        run: rm -f "$RUNNER_TEMP/sa.json"
