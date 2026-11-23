@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.hatimkardesim.hatim_kardesim",
+      "sha256_cert_fingerprints": [
+        "1C:38:0A:08:35:F6:7D:09:FA:80:E9:52:3D:BF:14:19:A7:BA:64:B5:C1:80:40:0A:AC:FB:37:B0:74:CB:75:9A",
+        "51:3D:71:57:42:AE:ED:30:4D:EB:52:C3:B0:A2:BD:B1:A6:72:C0:B5:21:49:CB:09:5F:E8:25:DA:5F:51:E2:14"
+      ]
+    }
+  }
+]

@@ -1,0 +1,41 @@
+name: Firebase Hosting yayınla
+# hatim-kardesim.firebaseapp.com/.well-known/assetlinks.json: Firebase e-postalarındaki şifre yenileme
+# bağlantıları Android'de doğrudan Hatim Kardeşim uygulamasını açsın diye (doğrulanmış uygulama bağlantısı).
+# Firestore kurallarıyla aynı FIREBASE_SA sırrını kullanır.
+on:
+  push:
+    branches: [main]
+    paths: ['firebase/hosting/**', '.github/workflows/hosting.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  yayinla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: firebase/hosting
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Anahtar
+        env:
+          SA: ${{ secrets.FIREBASE_SA }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::error title=FIREBASE_SA eksik::Depo ayarlarına FIREBASE_SA sırrı (hizmet hesabı JSON) eklenmeli."
+            exit 1
+          fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+      - name: Hosting'i yayınla
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx -y firebase-tools@latest deploy --only hosting --project hatim-kardesim --non-interactive
+      - name: Anahtarı sil
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"
