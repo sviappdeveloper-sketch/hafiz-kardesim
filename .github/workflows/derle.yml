@@ -153,6 +153,23 @@ jobs:
           git commit -q -m "Derleme ${{ github.run_number }} (${GITHUB_SHA::7})"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" apk
 
+      # Play Store'a yüklemek için AAB, 45 MB'lık parçalar hâlinde tek commit'lik 'aab' dalına konur
+      # (birleştirme: cat HafizKardesim.aab.parca-* > HafizKardesim.aab). Yükleme bitince dal silinebilir.
+      - name: AAB'yi 'aab' dalına koy (Play Store)
+        run: |
+          A=build/app/outputs/bundle/release/app-release.aab
+          [ -f "$A" ] || exit 0
+          mkdir -p /tmp/aab && cd /tmp/aab
+          split -b 45m -d "$GITHUB_WORKSPACE/$A" HafizKardesim.aab.parca-
+          sha256sum "$GITHUB_WORKSPACE/$A" | cut -d' ' -f1 > SHA256.txt
+          echo "surum: $(grep '^version:' $GITHUB_WORKSPACE/pubspec.yaml) derleme: ${{ github.run_number }} commit: ${GITHUB_SHA::7}" > SURUM.txt
+          git init -q -b aab
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add .
+          git commit -q -m "AAB ${{ github.run_number }} (${GITHUB_SHA::7})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" aab
+
       - name: Hata ayrıntılarını 'log' dalına yaz
         if: failure()
         run: |
