@@ -1,0 +1,12 @@
+Variant: debug
+Variant: release
+SHA1: C6:85:C3:6C:9B:4B:19:E0:CD:51:8B:CE:24:A4:73:59:D3:A9:91:3A
+SHA-256: B4:16:4F:8E:C4:4F:00:4A:BF:C8:67:AB:16:2F:92:DA:29:A6:28:67:2A:11:2A:2D:C4:3F:A7:72:E3:DC:0F:15
+Variant: profile
+Variant: debugAndroidTest
+Variant: debugAndroidTest
+Variant: debugAndroidTest
+Variant: debugAndroidTest
+Variant: debugAndroidTest
+Variant: debugAndroidTest
+Variant: debugAndroidTest
