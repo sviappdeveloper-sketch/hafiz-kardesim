@@ -409,7 +409,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         blocks.add(_surahHeader(a.surah));
       }
       run.add(TextSpan(text: '${a.text} ', style: _q(_size)));
-      run.add(TextSpan(text: '۝${Quran.arabicDigits(a.number)} ', style: _q(_size * 0.9, color: _orn)));
+      run.add(ayahMarkerSpan(a.number, _size, _orn));
+      run.add(TextSpan(text: ' ', style: _q(_size)));
     }
     flush();
     return _frame(Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -437,7 +438,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         rows.add(Text.rich(
           TextSpan(children: [
             TextSpan(text: '${g.text} ', style: _q(_size)),
-            TextSpan(text: '۝${Quran.arabicDigits(g.number)}', style: _q(_size * 0.9, color: _orn)),
+            ayahMarkerSpan(g.number, _size, _orn),
           ]),
           textAlign: TextAlign.justify,
           textDirection: TextDirection.rtl,

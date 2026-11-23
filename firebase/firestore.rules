@@ -247,6 +247,24 @@ service cloud.firestore {
             && requestsOpen(request.resource.data.toUid))
       );
       allow delete: if signedIn() && me() in resource.data.members;
+
+      // Arkadaşlar arası mesajlar: serbest yazı yok, yalnızca hazır cümleler ve emojiler
+      // (tebriklerle aynı liste). Yalnızca arkadaşlığı kabul edilmiş iki kişi yazıp okuyabilir.
+      match /mesajlar/{mid} {
+        function pair() { return get(/databases/$(database)/documents/friendRequests/$(id)).data; }
+        allow read: if signedIn() && me() in pair().members;
+        allow create: if signedIn() && notBlocked() && !isGuest()
+          && pair().status == 'kabul'
+          && me() in pair().members
+          && request.resource.data.keys().hasOnly(['fromUid', 'text', 'createdAt'])
+          && request.resource.data.fromUid == me()
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.text in ['🙂', '🤲', 'Maşallah', 'Allah kabul etsin', 'Tebrik ederim',
+               'Rabbim zihin açıklığı versin', 'Teşekkür ederim', 'Allah razı olsun', "Allah'a hamd olsun", 'Rica ederim'];
+        allow update: if false;
+        // Arkadaşlıktan çıkarken iki taraf da aradaki mesajları silebilir.
+        allow delete: if signedIn() && me() in pair().members;
+      }
     }
 
     function inviteOk(id) {

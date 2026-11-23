@@ -287,10 +287,8 @@ class _JuzReaderScreenState extends State<JuzReaderScreen> {
         }
       }
       run.add(TextSpan(text: '${a.text} ', style: _quranStyle(_size)));
-      run.add(TextSpan(
-        text: '۝${Quran.arabicDigits(a.number)} ',
-        style: _quranStyle(_size * 0.9, color: _ornament),
-      ));
+      run.add(ayahMarkerSpan(a.number, _size, _ornament));
+      run.add(TextSpan(text: ' ', style: _quranStyle(_size)));
     }
     flush();
 

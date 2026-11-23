@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_theme.dart';
 
@@ -433,3 +434,80 @@ class LoadingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const Center(child: CircularProgressIndicator());
 }
+
+/// Ayet sonu işareti: numara her yazı tipinde kutunun (süslü halkanın) tam ortasında durur.
+///
+/// Önceden "۝" karakteri ile rakamlar yan yana yazılıyordu; bu karakteri rakamları içine alacak
+/// biçimde çizemeyen yazı tiplerinde (Nesih, Latif…) numara halkanın dışına taşıyordu. Artık halka
+/// uygulama tarafından çizilir, numara içine yerleştirilir.
+class AyahMarker extends StatelessWidget {
+  const AyahMarker({super.key, required this.number, required this.size, required this.color});
+
+  final int number;
+  final double size; // ayet metninin yazı boyutu
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final digits = number.toString().split('').map((c) => String.fromCharCode(0x0660 + int.parse(c))).join();
+    final d = size * 1.05;
+    final w = d + (digits.length > 2 ? size * 0.28 : 0);
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: size * 0.12),
+      child: SizedBox(
+        width: w,
+        height: d,
+        child: CustomPaint(
+          painter: _AyahRingPainter(color),
+          child: Center(
+            child: Text(
+              digits,
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: GoogleFonts.amiri(
+                fontSize: size * (digits.length > 2 ? 0.40 : 0.46),
+                color: color,
+                fontWeight: FontWeight.w700,
+                height: 1.0,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AyahRingPainter extends CustomPainter {
+  _AyahRingPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(size.height / 2));
+    final outer = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.height * 0.07
+      ..color = color.withValues(alpha: 0.85);
+    final inner = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.height * 0.035
+      ..color = color.withValues(alpha: 0.55);
+    canvas.drawRRect(r.deflate(outer.strokeWidth / 2), outer);
+    canvas.drawRRect(r.deflate(size.height * 0.16), inner);
+    // Üst ve altta küçük süs noktaları
+    final dot = Paint()..color = color.withValues(alpha: 0.8);
+    canvas.drawCircle(Offset(size.width / 2, size.height * 0.035), size.height * 0.05, dot);
+    canvas.drawCircle(Offset(size.width / 2, size.height * 0.965), size.height * 0.05, dot);
+  }
+
+  @override
+  bool shouldRepaint(_AyahRingPainter old) => old.color != color;
+}
+
+/// Ayet metninin içine (satır akışına) konan ayet sonu işareti.
+InlineSpan ayahMarkerSpan(int number, double size, Color color) => WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: AyahMarker(number: number, size: size, color: color),
+    );

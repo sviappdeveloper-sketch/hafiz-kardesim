@@ -1,7 +1,7 @@
 // Güvenlik kuralı testleri: kurallar Firebase'e yüklenmeden önce GitHub Actions'ta çalışır.
 // Bir test bile başarısız olursa kurallar yayınlanmaz.
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, getDoc, deleteDoc, serverTimestamp, collection, addDoc, getDocs } from 'firebase/firestore';
 import { readFileSync } from 'fs';
 
 const env = await initializeTestEnvironment({ projectId: 'hatim-test', firestore: { rules: readFileSync('../firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 } });
@@ -38,6 +38,22 @@ await t('reddedilen isteği yeniden gönderme', true, () => setDoc(doc(X, 'frien
 await t('istek okuma (taraf)', true, () => getDoc(doc(Y, 'friendRequests', pair('X', 'Y'))));
 await t('istek okuma (yabancı)', false, () => getDoc(doc(A, 'friendRequests', pair('X', 'Y'))));
 await t('istek geri çekme', true, () => deleteDoc(doc(X, 'friendRequests', pair('X', 'Y'))));
+
+// ---------- Arkadaş mesajları (yalnızca hazır cümleler) ----------
+const msgs = (db, a, b) => collection(db, 'friendRequests', pair(a, b), 'mesajlar');
+const msg = (from, text, extra = {}) => ({ fromUid: from, text, createdAt: serverTimestamp(), ...extra });
+await t('arkadaşa hazır mesaj', true, () => addDoc(msgs(A, 'A', 'B'), msg('A', 'Allah kabul etsin')));
+await t('arkadaşa emoji', true, () => addDoc(msgs(B, 'A', 'B'), msg('B', '🤲')));
+await t('serbest yazı', false, () => addDoc(msgs(A, 'A', 'B'), msg('A', 'merhaba numaranı verir misin')));
+await t('başkası adına mesaj', false, () => addDoc(msgs(A, 'A', 'B'), msg('B', 'Maşallah')));
+await t('fazladan alan', false, () => addDoc(msgs(A, 'A', 'B'), msg('A', 'Maşallah', { link: 'x' })));
+await t('mesajları okuma (taraf)', true, () => getDocs(msgs(B, 'A', 'B')));
+await t('mesajları okuma (yabancı)', false, () => getDocs(msgs(X, 'A', 'B')));
+await t('yabancı araya mesaj', false, () => addDoc(msgs(X, 'A', 'B'), msg('X', 'Maşallah')));
+await t('arkadaş olmayana mesaj (bekleyen istek)', false, async () => {
+  await env.withSecurityRulesDisabled(c => setDoc(doc(c.firestore(), 'friendRequests', pair('A', 'K1')), req('A', 'K1')));
+  return addDoc(msgs(A, 'A', 'K1'), msg('A', 'Maşallah'));
+});
 
 // ---------- Hoca–öğrenci ----------
 const bag = (hoca, ogr, isteyen) => ({ hoca, ogrenci: ogr, uyeler: [hoca, ogr], adlar: { [hoca]: hoca, [ogr]: ogr }, isteyen, durum: 'bekliyor', olusturma: serverTimestamp() });
