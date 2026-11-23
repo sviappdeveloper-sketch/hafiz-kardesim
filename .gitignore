@@ -18,3 +18,4 @@ assets/asr/fonem.json
 android-keys/key.properties
 android-keys/*.jks
 firebase/test/node_modules/
+firebase/test/firestore.rules
