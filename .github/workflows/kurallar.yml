@@ -24,6 +24,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      # Önce kuralları sahte (emülatör) veritabanında dene; bir test bile başarısızsa yayınlama.
+      - name: Kural testleri
+        working-directory: firebase/test
+        run: |
+          npm install --no-audit --no-fund
+          npx -y firebase-tools@13 emulators:exec --only firestore --project hatim-test "node test.mjs"
       - name: Anahtar
         env:
           SA: ${{ secrets.FIREBASE_SA }}

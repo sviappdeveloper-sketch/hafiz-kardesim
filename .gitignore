@@ -17,3 +17,4 @@ assets/asr/fonem.json
 # Açılmış imza anahtarı asla depoya girmesin (yalnız kilitli anahtar.enc).
 android-keys/key.properties
 android-keys/*.jks
+firebase/test/node_modules/

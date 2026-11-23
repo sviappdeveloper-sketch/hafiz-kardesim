@@ -217,6 +217,14 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(uid)).data.get('friendRequestsOpen', true) != false;
     }
 
+    // Arkadaşlık belgesi yalnızca iki kişi arasındadır: belge kimliği iki uid'nin sıralı birleşimi,
+    // members tam olarak gönderen + alan. (Başkasını habersiz "arkadaş" yapmayı engeller.)
+    function pairOk(id, d) {
+      return d.fromUid is string && d.toUid is string && d.fromUid != d.toUid
+        && d.members is list && d.members.size() == 2 && d.members.hasAll([d.fromUid, d.toUid])
+        && id == (d.fromUid < d.toUid ? d.fromUid + '_' + d.toUid : d.toUid + '_' + d.fromUid);
+    }
+
     match /friendRequests/{id} {
       allow read: if signedIn() && (resource == null
         || resource.data.fromUid == me()
@@ -226,13 +234,16 @@ service cloud.firestore {
         && !isGuest()
         && request.resource.data.fromUid == me()
         && request.resource.data.status == 'bekliyor'
-        && me() in request.resource.data.members
+        && pairOk(id, request.resource.data)
         && requestsOpen(request.resource.data.toUid);
       allow update: if signedIn() && (
            (resource.data.toUid == me() && request.resource.data.status in ['kabul', 'red']
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']))
+        // Reddedilen istek yeniden gönderilir: yalnızca aynı iki kişi arasında.
         || (resource.data.status == 'red' && request.resource.data.fromUid == me() && request.resource.data.status == 'bekliyor'
-            && me() in request.resource.data.members && request.resource.data.members.size() == 2
+            && notBlocked() && !isGuest()
+            && pairOk(id, request.resource.data)
+            && request.resource.data.members.toSet() == resource.data.members.toSet()
             && requestsOpen(request.resource.data.toUid))
       );
       allow delete: if signedIn() && me() in resource.data.members;
@@ -314,6 +325,12 @@ service cloud.firestore {
 
     // ---------------- Hafız Kardeşim ----------------
     // Hoca–öğrenci bağı. Belge kimliği: hocaUid_ogrenciUid. İsteyen gönderir, karşı taraf kabul/ret eder.
+    // Hoca–öğrenci yalnızca hanım–hanım ya da bey–bey (profildeki cinsiyet sonradan değiştirilemez).
+    function sameGender(a, b) {
+      let ga = get(/databases/$(database)/documents/users/$(a)).data.get('gender', '');
+      let gb = get(/databases/$(database)/documents/users/$(b)).data.get('gender', '');
+      return ga in ['kadin', 'erkek'] && ga == gb;
+    }
     match /hafizBag/{id} {
       allow read: if signedIn() && (resource == null || me() in resource.data.uyeler);
       allow create: if signedIn() && !isGuest() && notBlocked()
@@ -323,7 +340,8 @@ service cloud.firestore {
         && request.resource.data.uyeler.hasAll([request.resource.data.hoca, request.resource.data.ogrenci])
         && me() in request.resource.data.uyeler
         && request.resource.data.hoca != request.resource.data.ogrenci
-        && id == request.resource.data.hoca + '_' + request.resource.data.ogrenci;
+        && id == request.resource.data.hoca + '_' + request.resource.data.ogrenci
+        && sameGender(request.resource.data.hoca, request.resource.data.ogrenci);
       allow update: if signedIn() && me() in resource.data.uyeler
         && request.resource.data.hoca == resource.data.hoca
         && request.resource.data.ogrenci == resource.data.ogrenci
@@ -332,9 +350,11 @@ service cloud.firestore {
           // karşı taraf isteği cevaplar
           (resource.data.durum == 'bekliyor' && resource.data.isteyen != me()
             && request.resource.data.durum in ['kabul', 'red']
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['durum', 'cevap']))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['durum', 'cevap'])
+            && (request.resource.data.durum == 'red' || sameGender(resource.data.hoca, resource.data.ogrenci)))
           // reddedilmiş istek yeniden gönderilir
-          || (resource.data.durum == 'red' && request.resource.data.durum == 'bekliyor' && request.resource.data.isteyen == me())
+          || (resource.data.durum == 'red' && request.resource.data.durum == 'bekliyor' && request.resource.data.isteyen == me()
+            && notBlocked() && sameGender(resource.data.hoca, resource.data.ogrenci))
           // kabul edilmiş bağda ödev (yalnız hoca) ve son ders bilgisi
           || (resource.data.durum == 'kabul' && request.resource.data.durum == 'kabul'
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['odev', 'son', 'adlar'])
@@ -374,7 +394,8 @@ service cloud.firestore {
         && request.resource.data.durum == 'davet'
         && request.resource.data.uyeler == [request.resource.data.hoca, request.resource.data.ogrenci]
         && me() in request.resource.data.uyeler
-        && get(/databases/$(database)/documents/hafizBag/$(request.resource.data.hoca + '_' + request.resource.data.ogrenci)).data.durum == 'kabul';
+        && get(/databases/$(database)/documents/hafizBag/$(request.resource.data.hoca + '_' + request.resource.data.ogrenci)).data.durum == 'kabul'
+        && sameGender(request.resource.data.hoca, request.resource.data.ogrenci);
       allow update: if signedIn() && me() in resource.data.uyeler
         && request.resource.data.hoca == resource.data.hoca
         && request.resource.data.ogrenci == resource.data.ogrenci
