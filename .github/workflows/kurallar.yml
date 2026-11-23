@@ -32,6 +32,7 @@ jobs:
       - name: Kural testleri
         working-directory: firebase/test
         run: |
+          cp ../firestore.rules firestore.rules   # emülatör yalnızca kendi klasöründeki dosyayı okur
           npm install --no-audit --no-fund
           npx -y firebase-tools@13 emulators:exec --only firestore --project hatim-test "node test.mjs"
       - name: Anahtar
