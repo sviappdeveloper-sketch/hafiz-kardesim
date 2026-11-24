@@ -1,0 +1,69 @@
+name: Google Play'e yükle
+
+# Elle başlatılır. Seçilen uygulamanın son derlenmiş AAB'sini (o deponun apk/aab dalından) alır ve
+# Google Play Developer API ile seçilen kanala yükler. Giriş anahtarsızdır (Workload Identity →
+# github-deploy hizmet hesabı); bu hesabın Play Console'da "Kullanıcılar ve izinler"de davetli olması gerekir.
+on:
+  workflow_dispatch:
+    inputs:
+      uygulama:
+        description: Uygulama
+        type: choice
+        options: [top-potada, turnuva-fiksturu, hafiz-kardesim, yukle-detayla]
+      kanal:
+        description: "Kanal (alpha = kapalı test, production = üretim)"
+        type: choice
+        default: alpha
+        options: [alpha, production, beta, internal]
+      notlar:
+        description: "Bu sürümde yenilikler (isteğe bağlı)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  yukle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: AAB'yi getir
+        env:
+          U: ${{ inputs.uygulama }}
+        run: |
+          case "$U" in
+            top-potada)       REPO=top-potada;     DAL=apk; PAKET=com.toppotada.oyun ;;
+            turnuva-fiksturu) REPO=ps-turnuva;     DAL=apk; PAKET=com.sviapp.turnuvafiksturu ;;
+            hafiz-kardesim)   REPO=hafiz-kardesim; DAL=aab; PAKET=com.sviapp.hafiz_kardesim ;;
+            yukle-detayla)    REPO=yukle-detayla;  DAL=aab; PAKET=com.mobihome.yukledetayla ;;
+          esac
+          git clone -q --depth 1 -b $DAL https://github.com/sviappdeveloper-sketch/$REPO /tmp/kaynak
+          cd /tmp/kaynak; ls -la; cat SURUM.txt 2>/dev/null || true
+          P=$(ls *.aab.parca-* 2>/dev/null | head -1 || true)
+          if [ -n "$P" ]; then cat "${P%-*}"-* > /tmp/yukle.aab
+          else A=$(ls *play*.aab 2>/dev/null | head -1); [ -n "$A" ] || A=$(ls *.aab | grep -v imzasiz | head -1); [ -n "$A" ] || A=$(ls *.aab | head -1); cp "$A" /tmp/yukle.aab; fi
+          if ! keytool -printcert -jarfile /tmp/yukle.aab >/tmp/imza.txt 2>&1 || grep -q "Not a signed" /tmp/imza.txt; then
+            echo "::error title=imza::$U AAB'si imzalı değil; Play bunu kabul etmez (yükleme anahtarıyla imzalanmalı)."; exit 1
+          fi
+          echo "::notice title=imza::$(grep -E 'Owner|SHA256' /tmp/imza.txt | head -2 | tr '\n' ' ')"
+          echo "PAKET=$PAKET" >> $GITHUB_ENV
+      - uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          workload_identity_provider: projects/668036405824/locations/global/workloadIdentityPools/github/providers/hafiz-repo
+          service_account: github-deploy@hatim-kardesim.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+      - name: Play'e yükle
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          AAB: /tmp/yukle.aab
+          KANAL: ${{ inputs.kanal }}
+          NOT: ${{ inputs.notlar }}
+        run: |
+          set -o pipefail
+          python3 tool/play_yukle.py 2>&1 | tee /tmp/sonuc.txt
+          tail -6 /tmp/sonuc.txt | while IFS= read -r l; do [ -n "$l" ] && echo "::notice title=play::$l"; done
