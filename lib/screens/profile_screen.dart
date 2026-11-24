@@ -9,6 +9,8 @@ import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/ornaments.dart';
 import '../widgets/password_field.dart';
+import '../widgets/hafiz_rol.dart';
+import 'auth_screens.dart' show HafizRolPicker;
 import '../l10n/l10n.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -22,6 +24,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final _name = TextEditingController(text: widget.me.name);
   bool _busy = false;
   late bool _requestsOpen = widget.me.friendRequestsOpen;
+  late String _rol = widget.me.hafizRol;
+
+  Future<void> _setRol(String r) async {
+    if (r == _rol) return;
+    final eski = _rol;
+    setState(() => _rol = r);
+    final ok = await runGuarded(context, () => AuthService.setHafizRol(widget.me.id, r), success: '${HafizRol.label(r)} olarak kaydedildi.');
+    if (!ok && mounted) setState(() => _rol = eski);
+  }
 
   Future<void> _setRequestsOpen(bool open) async {
     setState(() => _requestsOpen = open);
@@ -102,6 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(me.name, style: AppText.display(26)),
+                    if (_rol.isNotEmpty) HafizRolEtiketi(rol: _rol, size: 14),
                     Text(lt('{0} · {1} cüz okudu', [Gender.label(me.gender), me.totalJuzRead]),
                         style: AppText.body(13, color: AppColors.muted)),
                   ]),
@@ -118,6 +130,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 8),
             Text(lt('Hanım / Bey bilgisi grup kuralları gereği sonradan değiştirilemez.'),
                 style: AppText.body(12, color: AppColors.muted)),
+            if (!me.isGuest) ...[
+              const SizedBox(height: 18),
+              Text('Hafız mısınız, talebe misiniz?', style: AppText.body(14, weight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              HafizRolPicker(value: _rol.isEmpty ? null : _rol, onChanged: _setRol),
+              const SizedBox(height: 6),
+              Text('Adınızın altında diğer üyelere de görünür. Dokununca hemen kaydedilir.', style: AppText.body(12, color: AppColors.muted)),
+            ],
             if (!me.isGuest) ...[
               const SizedBox(height: 14),
               OrnateCard(

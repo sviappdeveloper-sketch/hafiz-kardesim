@@ -188,17 +188,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
   String? _gender;
+  String? _rol;
   bool _busy = false;
 
   Future<void> _submit() async {
     if (_name.text.trim().length < 2) { showSnack(context, lt('Adınızı ve soyadınızı yazın.')); return; }
     if (_gender == null) { showSnack(context, lt('Hanım ya da Bey seçimini yapın.')); return; }
+    if (_rol == null) { showSnack(context, 'Hafız mısınız, talebe misiniz? Birini seçin.'); return; }
     setState(() => _busy = true);
     final ok = await runGuarded(context, () => AuthService.register(
           name: _name.text,
           email: _email.text,
           password: _pass.text,
           gender: _gender!,
+          hafizRol: _rol!,
         ));
     if (!mounted) return;
     setState(() => _busy = false);
@@ -237,6 +240,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SizedBox(height: 8),
         Text(lt('Hoca–öğrenci eşleşmeleri bu seçime göre yapılır: hanımlar hanımlarla, beyler beylerle çalışır.'),
             style: AppText.body(12, color: AppColors.muted)),
+        const SizedBox(height: 20),
+        Text('Hafız mısınız, talebe misiniz?', style: AppText.body(14, weight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        HafizRolPicker(value: _rol, onChanged: (r) => setState(() => _rol = r)),
+        const SizedBox(height: 8),
+        Text('Adınızın altında görünür. Sonradan Profilim\'den değiştirebilirsiniz.', style: AppText.body(12, color: AppColors.muted)),
         const SizedBox(height: 22),
         GoldButton(label: lt('Hesabımı oluştur'), busy: _busy, onPressed: _submit),
       ],
@@ -255,13 +264,14 @@ class CompleteProfileScreen extends StatefulWidget {
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   late final _name = TextEditingController(text: widget.suggestedName);
   String? _gender;
+  String? _rol;
   bool _busy = false;
 
   Future<void> _save() async {
     if (_name.text.trim().length < 2) { showSnack(context, lt('Adınızı ve soyadınızı yazın.')); return; }
     if (_gender == null) { showSnack(context, lt('Hanım ya da Bey seçimini yapın.')); return; }
     setState(() => _busy = true);
-    await runGuarded(context, () => AuthService.saveProfile(widget.uid, name: _name.text, gender: _gender!));
+    await runGuarded(context, () => AuthService.saveProfile(widget.uid, name: _name.text, gender: _gender!, hafizRol: _rol ?? ''));
     if (mounted) setState(() => _busy = false);
   }
 
@@ -278,11 +288,47 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         ),
         const SizedBox(height: 20),
         GenderPicker(value: _gender, onChanged: (g) => setState(() => _gender = g)),
+        const SizedBox(height: 20),
+        Text('Hafız mısınız, talebe misiniz?', style: AppText.body(14, weight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        HafizRolPicker(value: _rol, onChanged: (r) => setState(() => _rol = r)),
         const SizedBox(height: 22),
         GoldButton(label: lt('Kaydet'), busy: _busy, onPressed: _save),
         TextButton(onPressed: () => confirmLogout(context), child: Text(lt('Çıkış yap'))),
       ],
     );
+  }
+}
+
+/// Hafız / Talebe seçimi (kayıt, profil tamamlama ve Profilim ekranında).
+class HafizRolPicker extends StatelessWidget {
+  const HafizRolPicker({super.key, required this.value, required this.onChanged});
+  final String? value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget option(String r, IconData icon) {
+      final selected = value == r;
+      return Expanded(
+        child: OrnateCard(
+          highlight: selected,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          onTap: () => onChanged(r),
+          child: Column(children: [
+            Icon(icon, color: selected ? AppColors.goldLight : AppColors.muted),
+            const SizedBox(height: 6),
+            Text(HafizRol.label(r), style: AppText.display(20, color: selected ? AppColors.goldLight : AppColors.ivory)),
+          ]),
+        ),
+      );
+    }
+
+    return Row(children: [
+      option(HafizRol.hafiz, Icons.menu_book_rounded),
+      const SizedBox(width: 12),
+      option(HafizRol.talebe, Icons.school_outlined),
+    ]);
   }
 }
 

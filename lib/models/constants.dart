@@ -41,6 +41,13 @@ class Gender {
       g == female ? lt('Hanım') : (g == male ? lt('Bey') : (g == guest ? lt('Misafir') : '—'));
 }
 
+/// Hafız Kardeşim: üyenin hafız mı talebe mi olduğu (kayıtta sorulur, profilden değiştirilebilir).
+class HafizRol {
+  static const hafiz = 'hafiz';
+  static const talebe = 'talebe';
+  static String label(String r) => r == hafiz ? 'Hafız' : (r == talebe ? 'Talebe' : '');
+}
+
 class GenderType {
   static const mixed = 'karma';
   static const women = 'kadin';

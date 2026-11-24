@@ -18,6 +18,7 @@ import '../../services/support_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format.dart';
 import '../../widgets/guest.dart';
+import '../../widgets/hafiz_rol.dart';
 import '../../widgets/ornaments.dart';
 import '../../widgets/prayer_card.dart';
 import '../../widgets/sekme_geri.dart';
@@ -246,6 +247,13 @@ class _AnaSekme extends StatelessWidget {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Esselâmü aleyküm,', style: AppText.body(13, color: AppColors.muted)),
                     Text(me.firstName, overflow: TextOverflow.ellipsis, style: AppText.display(26)),
+                    if (me.hafizRol.isNotEmpty)
+                      HafizRolEtiketi(rol: me.hafizRol)
+                    else if (!me.isGuest)
+                      GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(me: me))),
+                        child: Text('Hafız mısın, talebe mi? Seç ›', style: AppText.body(12.5, color: AppColors.gold)),
+                      ),
                     Text(formatToday(DateTime.now()), style: AppText.body(12, color: AppColors.gold)),
                   ]),
                 ),

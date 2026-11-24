@@ -50,20 +50,22 @@ class AuthService {
     required String email,
     required String password,
     required String gender,
+    String hafizRol = '',
   }) async {
     try {
       final cred = await _auth.createUserWithEmailAndPassword(email: email.trim(), password: password);
       await cred.user!.updateDisplayName(name.trim());
-      await saveProfile(cred.user!.uid, name: name, gender: gender);
+      await saveProfile(cred.user!.uid, name: name, gender: gender, hafizRol: hafizRol);
       await savePrivate();
     } on FirebaseAuthException catch (e) {
       throw HatimException(_authMessage(e));
     }
   }
 
-  static Future<void> saveProfile(String uid, {required String name, required String gender}) => users.doc(uid).set({
+  static Future<void> saveProfile(String uid, {required String name, required String gender, String hafizRol = ''}) => users.doc(uid).set({
         'name': name.trim(),
         'gender': gender,
+        if (hafizRol.isNotEmpty) 'hafizRol': hafizRol,
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -83,6 +85,9 @@ class AuthService {
   }
 
   static Future<void> updateName(String uid, String name) => users.doc(uid).update({'name': name.trim()});
+
+  /// Hafız / Talebe bilgisi (profilden her zaman değiştirilebilir).
+  static Future<void> setHafizRol(String uid, String rol) => users.doc(uid).update({'hafizRol': rol});
 
   /// Arkadaşlık isteklerini açar/kapatır (kapalıyken kimse yeni istek gönderemez).
   static Future<void> setFriendRequestsOpen(String uid, bool open) =>

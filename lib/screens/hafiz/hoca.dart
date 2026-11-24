@@ -10,6 +10,7 @@ import '../../services/social_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/format.dart';
 import '../../widgets/ornaments.dart';
+import '../../widgets/hafiz_rol.dart';
 import '../../widgets/sekme_geri.dart';
 import 'bildir.dart';
 import 'canli.dart';
@@ -180,7 +181,12 @@ class HocaEkrani extends StatelessWidget {
           Row(children: [
             Icon(Icons.school_outlined, color: AppColors.goldLight),
             const SizedBox(width: 10),
-            Expanded(child: Text(b.karsiAd(me.id), style: AppText.body(16, weight: FontWeight.w700))),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(b.karsiAd(me.id), style: AppText.body(16, weight: FontWeight.w700)),
+                HafizRolEtiketi(uid: b.karsi(me.id), size: 12),
+              ]),
+            ),
             PopupMenuButton<String>(
               onSelected: (v) => _menu(context, b, v),
               itemBuilder: (_) => const [
@@ -215,7 +221,12 @@ class HocaEkrani extends StatelessWidget {
           Row(children: [
             Icon(Icons.person_outline, color: AppColors.goldLight),
             const SizedBox(width: 10),
-            Expanded(child: Text(b.karsiAd(me.id), style: AppText.body(16, weight: FontWeight.w700))),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(b.karsiAd(me.id), style: AppText.body(16, weight: FontWeight.w700)),
+                HafizRolEtiketi(uid: b.karsi(me.id), size: 12),
+              ]),
+            ),
             PopupMenuButton<String>(
               onSelected: (v) => _menu(context, b, v),
               itemBuilder: (_) => const [

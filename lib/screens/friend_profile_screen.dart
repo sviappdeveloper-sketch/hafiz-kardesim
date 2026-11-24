@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/ornaments.dart';
 import '../widgets/reaction_bar.dart';
+import '../widgets/hafiz_rol.dart';
 import 'group_detail_screen.dart';
 import '../l10n/l10n.dart';
 
@@ -22,7 +23,10 @@ class FriendProfileScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(friendName, overflow: TextOverflow.ellipsis),
+          title: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Text(friendName, overflow: TextOverflow.ellipsis),
+            HafizRolEtiketi(uid: friendUid, size: 12),
+          ]),
           bottom: TabBar(tabs: [Tab(text: lt('Cüzleri')), Tab(text: lt('Grupları'))]),
         ),
         body: PatternBackground(

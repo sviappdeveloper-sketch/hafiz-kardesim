@@ -6,6 +6,7 @@ import '../services/social_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/ornaments.dart';
+import '../widgets/hafiz_rol.dart';
 import 'friend_profile_screen.dart';
 import 'group_detail_screen.dart';
 import '../l10n/l10n.dart';
@@ -82,7 +83,7 @@ class _FriendsTab extends StatelessWidget {
                       child: Text(f.name.isNotEmpty ? f.name.characters.first.toUpperCase() : '?'),
                     ),
                     title: Text(f.name, style: AppText.body(15)),
-                    subtitle: Text(lt('Cüzlerinizi ve gruplarınızı görün'), style: AppText.body(12, color: AppColors.muted)),
+                    subtitle: Align(alignment: Alignment.centerLeft, child: HafizRolEtiketi(uid: f.uid, size: 12)),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
