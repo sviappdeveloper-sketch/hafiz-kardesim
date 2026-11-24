@@ -421,5 +421,17 @@ service cloud.firestore {
         && request.resource.data.baslatan == resource.data.baslatan;
       allow delete: if signedIn() && me() in resource.data.uyeler;
     }
+
+    // Yöneticiden genel mesajlar (Hatim Kardeşim › Yönetim › Duyuru). Herkes okur, yalnızca yönetici yazar/siler.
+    match /duyurular/{id} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['text', 'at'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.at == request.time;
+      allow delete: if isAdmin();
+    }
   }
 }
