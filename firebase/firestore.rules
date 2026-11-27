@@ -145,6 +145,17 @@ service cloud.firestore {
         // Katılma isteklerinde herkes yalnızca kendi isteğini ekleyip silebilir; grubu kuran hepsini yanıtlar.
         && (resource.data.creatorId == me()
             || request.resource.data.get('joinRequests', {}).diff(resource.data.get('joinRequests', {})).affectedKeys().hasOnly([me()]));
+      // Yönetici, gruptan cüz silerken (okundu işaretini kaldırırken) yalnızca sayaçları ve durumu düzeltebilir.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['takenCount', 'doneCount', 'juzCounts', 'status', 'hatimCount', 'finishedAt'])
+        && request.resource.data.takenCount is int && request.resource.data.takenCount >= 0
+        && request.resource.data.takenCount <= resource.data.takenCount
+        && request.resource.data.get('doneCount', 0) >= 0
+        && request.resource.data.get('doneCount', 0) <= resource.data.get('doneCount', 0)
+        && request.resource.data.get('hatimCount', 0) >= 0
+        && request.resource.data.get('hatimCount', 0) <= resource.data.get('hatimCount', 0)
+        && (request.resource.data.status == resource.data.status || request.resource.data.status == 'toplaniyor');
       allow delete: if isAdmin();
     }
 
@@ -209,6 +220,12 @@ service cloud.firestore {
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userName']))
           || resetOk()       // grubu kuranın yeni hatim açması
         );
+      // Yönetici, alınmış ya da okunmuş cüzü gruptan siler: cüz yeniden boş olur.
+      allow update: if isAdmin()
+        && request.resource.data.groupId == resource.data.groupId
+        && request.resource.data.number == resource.data.number
+        && request.resource.data.uid == null
+        && request.resource.data.status == 'bos';
       allow delete: if isAdmin();
     }
 
